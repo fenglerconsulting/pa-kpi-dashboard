@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kunden – Patientengewinnung – KPIs</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F4F6F9;--s1:#FFF;--s2:#F0F2F5;--bd:#E2E6ED;--bdL:#D0D5DE;--t:#1A2332;--tM:#5A6778;--tD:#8E99A8;--ac:#0891B2;--acL:#CFFAFE;--g:#059669;--gL:#D1FAE5;--am:#D97706;--amL:#FEF3C7;--r:#DC2626;--rL:#FEE2E2;--purple:#7C3AED;--purpleL:#EDE9FE;--teal:#0D9488;--tealL:#CCFBF1;--rose:#E11D48;--roseL:#FFE4E6;--sky:#0284C7;--skyL:#E0F2FE;--lime:#65A30D;--limeL:#ECFCCB;--indigo:#4F46E5;--indigoL:#E0E7FF}
+  *{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--t);font-family:'DM Sans',system-ui,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--bdL);border-radius:3px}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .wrap{max-width:1060px;margin:0 auto;padding:24px 24px 40px}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+  .header h1{font-size:19px;font-weight:700;letter-spacing:-.3px}.header .sub{font-size:12px;color:var(--tM);margin-top:2px}
+  .header-actions{display:flex;gap:6px;align-items:center}
+  .btn{padding:7px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--s1);color:var(--tM);font-size:12px;cursor:pointer;font-family:inherit;font-weight:500;transition:all .15s}
+  .btn:hover{border-color:var(--ac);color:var(--ac)}.btn-primary{border:none;background:var(--ac);color:#fff;font-weight:600}
+  .btn-green{border:none;background:var(--g);color:#fff;font-weight:600}
+  .spinner{width:14px;height:14px;border:2px solid var(--ac);border-top-color:transparent;border-radius:50%;animation:spin .5s linear infinite}
+  .settings{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px;display:none}
+  .settings.open{display:block}.settings h3{font-size:13px;font-weight:600;margin-bottom:3px}
+  .settings .hint{font-size:12px;color:var(--tM);margin-bottom:10px}.settings .hint a{color:var(--ac)}
+  .settings .row{display:flex;gap:6px}
+  .settings input[type=password]{flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--t);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none}
+  .error-msg{color:var(--r);font-size:12px;margin-top:6px}
+  .datepicker{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:11px 16px;margin-bottom:14px}
+  .datepicker .inner{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .datepicker .label{font-size:11px;font-weight:600;color:var(--tM);letter-spacing:.5px;text-transform:uppercase;margin-right:2px}
+  .rb{padding:5px 12px;border-radius:7px;border:1px solid var(--bd);background:transparent;color:var(--tM);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s}
+  .rb.active{border-color:var(--ac);background:var(--acL);color:var(--ac);font-weight:600}
+  .rb:hover:not(.active){border-color:var(--bdL);color:var(--t)}
+  .divider{border-left:1px solid var(--bd);height:20px;margin:0 3px}
+  .datepicker input[type=date]{padding:5px 8px;border-radius:7px;border:1px solid var(--bd);background:var(--bg);color:var(--t);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none}
+  .tabs{display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--bd)}
+  .tab{padding:10px 18px;font-size:13px;font-weight:600;color:var(--tM);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;user-select:none;white-space:nowrap}
+  .tab:hover{color:var(--t)}.tab.active{color:var(--ac);border-bottom-color:var(--ac)}
+  .tab .ti{margin-right:5px}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:18px;margin-bottom:14px;animation:fadeUp .25s ease both}
+  .card-title{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--tM);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  .section-label{font-size:11px;font-weight:600;color:var(--tD);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;margin-top:4px}
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:8px}
+  .kpi{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:14px 12px 10px;animation:fadeUp .25s ease both}
+  .kpi .kl{font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--tM);margin-bottom:6px;display:flex;align-items:center;gap:4px;line-height:1.3}
+  .kpi .kl .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .kpi .kv{font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;line-height:1}
+  .kpi .ks{font-size:10.5px;color:var(--tD);margin-top:3px;line-height:1.3}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .bar-row .bl{font-size:12px;color:var(--tM);width:220px;min-width:100px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-row .bw{flex:1;height:24px;background:var(--bg);border-radius:6px;overflow:hidden}
+  .bar-row .bf{height:100%;border-radius:6px;transition:width .5s cubic-bezier(.22,1,.36,1);min-width:2px}
+  .bf.cyan{background:linear-gradient(90deg,var(--ac),#67E8F9)}.bf.green{background:linear-gradient(90deg,var(--g),#34D399)}
+  .bf.purple{background:linear-gradient(90deg,var(--purple),#A78BFA)}.bf.amber{background:linear-gradient(90deg,var(--am),#FBBF24)}
+  .bf.teal{background:linear-gradient(90deg,var(--teal),#5EEAD4)}.bf.rose{background:linear-gradient(90deg,var(--rose),#FB7185)}
+  .bf.sky{background:linear-gradient(90deg,var(--sky),#38BDF8)}.bf.lime{background:linear-gradient(90deg,var(--lime),#A3E635)}
+  .bar-row .bv{font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;width:36px}
+  .funnel{display:flex;flex-direction:column;gap:4px;margin:12px 0}
+  .funnel-step{display:flex;align-items:center;gap:10px}
+  .funnel-bar{height:30px;border-radius:6px;display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:600;color:#fff;transition:width .6s cubic-bezier(.22,1,.36,1);min-width:40px}
+  .funnel-label{font-size:11.5px;color:var(--tM);width:200px;min-width:130px;text-align:right;white-space:nowrap}
+  .funnel-val{font-size:13px;font-family:'JetBrains Mono',monospace;font-weight:600;width:45px;text-align:right}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:7px 10px;color:var(--tM);font-weight:600;font-size:11px;letter-spacing:.4px;text-transform:uppercase;border-bottom:2px solid var(--bd)}
+  td{padding:9px 10px;border-bottom:1px solid var(--s2)}
+  td.date{font-family:'JetBrains Mono',monospace;color:var(--ac);font-size:12px;font-weight:600;white-space:nowrap}
+  td.name{color:var(--t);font-weight:500}td.dim{color:var(--tM)}
+  td.stelle{color:var(--tM);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  tr:hover{background:var(--s2)}.no-data{color:var(--tD);font-size:13px;text-align:center;padding:24px}
+  .search-wrap{position:relative;margin-bottom:16px}
+  .search-input{width:100%;padding:10px 14px 10px 38px;border-radius:10px;border:1px solid var(--bd);background:var(--s1);color:var(--t);font-size:14px;font-family:inherit;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E99A8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
+  .search-input:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(8,145,178,.1)}
+  .tag{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;margin:1px 2px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+  .tag.src{background:var(--acL);color:var(--ac)}.tag.cmp{background:var(--purpleL);color:var(--purple)}.tag.cnt{background:var(--amL);color:var(--am)}
+  .tag.na{background:var(--s2);color:var(--tD)}.tag.pos{background:var(--gL);color:var(--g)}.tag.neg{background:var(--rL);color:var(--r)}.tag.warn{background:var(--amL);color:var(--am)}.tag.info{background:var(--acL);color:var(--ac)}.tag.purple{background:var(--purpleL);color:var(--purple)}.tag.sky{background:var(--skyL);color:var(--sky)}.tag.teal{background:var(--tealL);color:var(--teal)}.tag.lime{background:var(--limeL);color:var(--lime)}
+  .kunde-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+  .kunde-header h3{font-size:17px;font-weight:700}.kunde-header .kunde-sub{font-size:12px;color:var(--tM);margin-top:2px}
+  .kunde-stats{display:flex;gap:12px;flex-wrap:wrap}
+  .kunde-stat{text-align:center;padding:8px 14px;background:var(--bg);border-radius:10px}
+  .kunde-stat .val{font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  .kunde-stat .lbl{font-size:9.5px;color:var(--tM);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+  .copy-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--bd);background:transparent;color:var(--tM);font-size:11px;cursor:pointer;font-family:inherit;font-weight:500}
+  .copy-btn:hover{border-color:var(--g);color:var(--g)}
+  pre.trello{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:14px;font-size:12px;font-family:'JetBrains Mono',monospace;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+  .empty{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:48px 24px;text-align:center}
+  .empty .icon{font-size:36px;margin-bottom:10px}.empty h2{font-size:16px;font-weight:600;margin-bottom:5px}
+  .empty p{font-size:13px;color:var(--tM);max-width:400px;margin:0 auto;line-height:1.5}
+  .info-banner{background:var(--acL);border:1px solid #67E8F9;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:#155E75;line-height:1.5}
+  .info-banner b{font-weight:600}
+  .footer{text-align:center;color:var(--tD);font-size:11px;margin-top:28px}
+  .hidden{display:none}
+  @media(max-width:640px){.kpi-row{grid-template-columns:1fr 1fr}.bar-row .bl{width:90px;min-width:60px;font-size:11px}.tab{padding:8px 11px;font-size:12px}.kunde-stats{gap:6px}.funnel-label{width:120px;font-size:10px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div><h1>🦷 Kunden · Patientengewinnung · KPIs</h1><div class="sub" id="headerSub">Fengler Consulting · Nicht verbunden</div></div>
+    <div class="header-actions"><div class="spinner hidden" id="spinner"></div><button class="btn" onclick="toggleSettings()">⚙ API</button><button class="btn btn-primary hidden" id="reloadBtn" onclick="loadData()">↻ Aktualisieren</button></div>
+  </div>
+  <div class="settings" id="settings">
+    <h3>Airtable Personal Access Token</h3>
+    <div class="hint">Token erstellen auf <a href="https://airtable.com/create/tokens" target="_blank">airtable.com/create/tokens</a> mit <b>data.records:read</b> Scope.</div>
+    <div class="row"><input type="password" id="patInput" placeholder="pat..." /><button class="btn btn-green" onclick="connect()">Verbinden</button></div>
+    <div class="error-msg hidden" id="errorMsg"></div>
+    <div style="border-top:1px solid var(--bd);margin-top:14px;padding-top:14px">
+      <h3>Trello (für spätere Funnel-Phasen)</h3>
+      <div class="hint">Lädt automatisch alle Boards mit PA, PB oder Patientengewinnung im Namen. API Key von <a href="https://trello.com/power-ups/admin" target="_blank">trello.com/power-ups/admin</a>.</div>
+      <div class="row"><input type="password" id="trelloKeyInput" placeholder="Trello API Key..." style="flex:1" /><input type="password" id="trelloTokenInput" placeholder="Trello Token..." style="flex:1" /><button class="btn btn-green" onclick="connectTrello()">Alle PA-Boards laden</button></div>
+      <div id="trelloStatus" style="font-size:11px;color:var(--tM);margin-top:6px"></div>
+    </div>
+  </div>
+  <div class="datepicker">
+    <div class="inner">
+      <span class="label">Zeitraum</span>
+      <button class="rb" onclick="setRange(7,this)">7d</button>
+      <button class="rb" onclick="setRange(14,this)">14d</button>
+      <button class="rb" onclick="setRange(28,this)">28d</button>
+      <button class="rb active" onclick="setRange(90,this)">90d</button>
+      <button class="rb" onclick="setRange(180,this)">180d</button>
+      <button class="rb" onclick="setRange(365,this)">1 Jahr</button>
+      <button class="rb" onclick="setRange(99999,this)">Gesamt</button>
+      <div class="divider"></div>
+      <input type="date" id="dateFrom" onchange="setCustomRange()" title="Von" />
+      <span style="color:var(--tD);font-size:12px">–</span>
+      <input type="date" id="dateTo" onchange="setCustomRange()" title="Bis" />
+    </div>
+  </div>
+  <div class="tabs hidden" id="tabBar">
+    <div class="tab active" onclick="switchTab('overview',this)"><span class="ti">📊</span>Übersicht</div>
+    <div class="tab" onclick="switchTab('funnel',this)"><span class="ti">🔄</span>Funnel</div>
+    <div class="tab" onclick="switchTab('deepdive',this)"><span class="ti">🔍</span>Kunden Deep Dive</div>
+    <div class="tab" onclick="switchTab('meta',this)"><span class="ti">📣</span>Meta Ads</div>
+  </div>
+  <div class="search-wrap hidden" id="ddSearchWrap">
+    <input class="search-input" type="text" placeholder="Praxis / Arzt suchen..." id="ddSearchInput" oninput="ddSearchChange(this.value)" />
+  </div>
+  <div id="content"><div class="empty"><div class="icon">🔌</div><h2>Airtable verbinden</h2><p>Klicke oben auf <b>⚙ API</b> und gib deinen Personal Access Token ein.</p></div></div>
+  <div class="footer" id="footer">Fengler Consulting · Datenquelle: Airtable</div>
+</div>
+<script>
+const BASE="appaHrlv4WmEIDOv1",TBL_EING="tblHllc2rCskfvDve",TBL_PROJ="tblkoQQrKTUVAfcEI";
+let PAT="",raw=null,projekte=null,rangeDays=90,useCustom=false,curTab="overview",ddSearch="";
+let TRELLO_KEY="",TRELLO_TOKEN="",trelloData=null;
+
+/* Ordered funnel stages for cumulative counting.
+   Level = numeric rank. A lead at status with level N has passed all levels < N. */
+const FUNNEL_STAGES=[
+  {key:"qualifiziert",  label:"Qualifiziert (Call)",        level:5, color:"var(--purple)"},
+  {key:"termin",        label:"Termin in Praxis",           level:6, color:"var(--ac)"},
+  {key:"stattgefunden", label:"Termin stattgefunden",       level:8, color:"var(--sky)"},
+  {key:"bplan_erstellt",label:"Behandlungsplan erstellt",   level:9, color:"var(--teal)"},
+  {key:"bplan_best",    label:"Behandlungsplan best\u00e4tigt",level:10,color:"var(--lime)"},
+  {key:"begonnen",      label:"Behandlung begonnen",        level:11,color:"var(--g)"},
+  {key:"beendet",       label:"Behandlung beendet",         level:12,color:"#047857"}
+];
+
+/* Map every known status to a numeric level */
+const STATUS_LEVEL={
+  "Nicht erreicht":1,"7x nicht erreicht":2,"Erreicht, FU fix vereinbart":3,
+  "Wiedervorlage":4,"Qualifiziert (Call)":5,"Termin in Praxis":6,
+  "Termin nicht stattgefunden \u2192 anrufen und erneut terminieren":7,
+  "Termin stattgefunden":8,"Behandlungsplan erstellt":9,
+  "Behandlungsplan best\u00e4tigt":10,"Behandlung begonnen":11,
+  "Behandlung beendet":12,"In Ablage":13,"In Ablage (von Kunde)":14
+};
+
+const DROPOUT_STATUSES=new Set([
+  "Nicht erreicht","7x nicht erreicht","In Ablage","In Ablage (von Kunde)",
+  "Wiedervorlage","Erreicht, FU fix vereinbart",
+  "Termin nicht stattgefunden \u2192 anrufen und erneut terminieren"
+]);
+
+/* Only positive progression statuses count for cumulative funnel */
+const POSITIVE_STATUSES=new Set([
+  "Qualifiziert (Call)","Termin in Praxis","Termin stattgefunden",
+  "Behandlungsplan erstellt","Behandlungsplan best\u00e4tigt",
+  "Behandlung begonnen","Behandlung beendet"
+]);
+
+function statusLevel(s){return STATUS_LEVEL[s]||0}
+function hasReached(status,stageLevel){
+  /* Positive statuses: count if their level >= stage */
+  if(POSITIVE_STATUSES.has(status))return statusLevel(status)>=stageLevel;
+  /* "Termin nicht stattgefunden" implies reached Termin in Praxis (6) but NOT Termin stattgefunden */
+  if(status==="Termin nicht stattgefunden \u2192 anrufen und erneut terminieren")return stageLevel<=6;
+  /* All dropout statuses (Nicht erreicht, In Ablage, Wiedervorlage etc.) don't count */
+  return false;
+}
+function countReached(leads,stageLevel){return leads.filter(l=>hasReached(l.status,stageLevel)).length}
+
+const STATUS_STYLE={
+  "Nicht erreicht":{cls:"warn",short:"Nicht erreicht"},
+  "7x nicht erreicht":{cls:"neg",short:"7x nicht erreicht"},
+  "Erreicht, FU fix vereinbart":{cls:"info",short:"FU fix vereinbart"},
+  "Wiedervorlage":{cls:"warn",short:"Wiedervorlage"},
+  "Qualifiziert (Call)":{cls:"purple",short:"Qualifiziert"},
+  "Termin in Praxis":{cls:"info",short:"Termin in Praxis"},
+  "Termin nicht stattgefunden \u2192 anrufen und erneut terminieren":{cls:"neg",short:"Termin n. stattgef."},
+  "Termin stattgefunden":{cls:"sky",short:"Termin stattgef."},
+  "Behandlungsplan erstellt":{cls:"teal",short:"BPlan erstellt"},
+  "Behandlungsplan best\u00e4tigt":{cls:"lime",short:"BPlan best\u00e4tigt"},
+  "Behandlung begonnen":{cls:"pos",short:"Beh. begonnen"},
+  "Behandlung beendet":{cls:"pos",short:"Beh. beendet"},
+  "In Ablage":{cls:"na",short:"In Ablage"},
+  "In Ablage (von Kunde)":{cls:"na",short:"Ablage (Kunde)"}
+};
+function statusTag(s){
+  if(!s)return'<span class="tag na">Kein Status</span>';
+  const st=STATUS_STYLE[s];
+  if(st)return'<span class="tag '+st.cls+'" title="'+esc(s)+'">'+esc(st.short)+'</span>';
+  return'<span class="tag na" title="'+esc(s)+'">'+esc(s.length>25?s.substring(0,23)+"\u2026":s)+'</span>';
+}
+
+const $=id=>document.getElementById(id);
+const gs=v=>Array.isArray(v)?(v[0]||""):(v!=null?String(v):"");
+function esc(s){if(s==null)return"";if(typeof s!=="string")s=String(s);return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function pd(d){if(!d)return null;if(typeof d==="string"){if(d.includes("T"))return new Date(d);const p=d.split(/[-/]/);if(p.length>=3)return p[0].length===4?new Date(p[0],p[1]-1,p[2]):new Date(p[2],p[1]-1,p[0])}return new Date(d)}
+function fd(d){if(!d)return"";return(d instanceof Date?d:new Date(d)).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})}
+function daysAgo(n){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-n);return d}
+function fmtTage(t){return t>=99999?"Gesamt":t+" Tage"}
+function toggleSettings(){$("settings").classList.toggle("open")}
+function showError(m){const e=$("errorMsg");e.textContent=m;e.classList.remove("hidden")}
+function hideError(){$("errorMsg").classList.add("hidden")}
+function getRange(){const to=new Date();to.setHours(23,59,59,999);if(useCustom){const f=$("dateFrom").value,t=$("dateTo").value;if(f)return{from:new Date(f+"T00:00:00"),to:t?new Date(t+"T23:59:59"):to}}return{from:daysAgo(rangeDays),to}}
+function getRangeLabel(){const{from,to}=getRange();return useCustom?fd(from)+" \u2013 "+fd(to):(rangeDays>=99999?"Gesamt":"Letzte "+rangeDays+" Tage")+" ("+fd(from)+" \u2013 "+fd(to)+")"}
+function setRange(d,btn){rangeDays=d;useCustom=false;document.querySelectorAll(".rb").forEach(b=>b.classList.remove("active"));btn.classList.add("active");$("dateFrom").value="";$("dateTo").value="";if(raw)renderTab()}
+function setCustomRange(){useCustom=true;document.querySelectorAll(".rb").forEach(b=>b.classList.remove("active"));if(raw)renderTab()}
+function switchTab(t,el){curTab=t;document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");$("ddSearchWrap").classList.toggle("hidden",t!=="deepdive");renderTab()}
+function getTage(){if(useCustom){const{from,to}=getRange();return Math.max(1,Math.round((to-from)/(864e5)))}return Math.min(rangeDays,99999)}
+
+async function fetchAll(tid){
+  let all=[],off=null;
+  do{let u="https://api.airtable.com/v0/"+BASE+"/"+tid+"?pageSize=100";if(off)u+="&offset="+encodeURIComponent(off);
+    const r=await fetch(u,{headers:{Authorization:"Bearer "+PAT}});
+    if(!r.ok){let m="Fehler "+r.status;try{const b=await r.json();m+=": "+(b.error?.message||"")}catch(e){}throw new Error(m)}
+    const d=await r.json();all=all.concat(d.records||[]);off=d.offset||null;
+    $("footer").textContent="Lade... "+all.length+" Datens\u00e4tze";
+  }while(off);return all;
+}
+async function connect(){PAT=$("patInput").value.trim();if(!PAT)return;hideError();await loadData();$("settings").classList.remove("open")}
+async function loadData(){
+  if(!PAT)return;$("spinner").classList.remove("hidden");
+  try{
+    const rec=await fetchAll(TBL_EING);
+    raw=rec.map(r=>{const f=r.fields||{};return{
+      eingang:f["Eingang"]||null,name:gs(f["Name Bewerber"]),kunde:gs(f["Kunden-Name"]),
+      status:gs(f["Finaler Status"]),
+      behandlung:Array.isArray(f["Name Stelle (from Stelle)"])?(f["Name Stelle (from Stelle)"][0]||""):gs(f["Name Stelle (from Stelle)"]),
+      projekt:Array.isArray(f["Lookup Projekt"])?(f["Lookup Projekt"][0]||""):gs(f["Lookup Projekt"]),
+      company:gs(f["Company"]),
+      utm_source:gs(f["utm_source"]),utm_medium:gs(f["utm_medium"]),
+      utm_campaign:gs(f["utm_campaign"]),utm_content:gs(f["utm_content"]),
+      paket:Array.isArray(f["Paket (from Projekt)"])?(f["Paket (from Projekt)"][0]||""):gs(f["Paket (from Projekt)"])
+    }}).filter(r=>r.paket==="PA");
+    const proj=await fetchAll(TBL_PROJ);
+    projekte=proj.map(r=>{const f=r.fields||{};return{kundenname:gs(f["Kundenname"]),paket:gs(f["Paket"]),status:gs(f["Status"])}});
+    $("reloadBtn").classList.remove("hidden");$("tabBar").classList.remove("hidden");renderTab();
+  }catch(e){showError(e.message)}
+  $("spinner").classList.add("hidden");
+}
+
+/* ===== TRELLO INTEGRATION ===== */
+const TRELLO_LIST_MAP={
+  "termin stattgefunden":"stattgefunden",
+  "behandlungsplan erstellt":"bplan_erstellt",
+  "behandlungsplan best":"bplan_best",
+  "behandlung begonnen":"begonnen",
+  "behandlung beendet":"beendet"
+};
+function mapTrelloList(listName){
+  const lc=listName.toLowerCase();
+  for(const[key,val] of Object.entries(TRELLO_LIST_MAP)){if(lc.includes(key))return val}
+  return null;
+}
+
+async function trelloFetch(path){
+  const u="https://api.trello.com/1"+path+(path.includes("?")?"&":"?")+"key="+TRELLO_KEY+"&token="+TRELLO_TOKEN;
+  const r=await fetch(u);
+  if(!r.ok)throw new Error("Trello Fehler "+r.status);
+  return r.json();
+}
+
+async function loadTrelloBoards(){/* unused */}
+
+async function connectTrello(){
+  TRELLO_KEY=$("trelloKeyInput").value.trim();TRELLO_TOKEN=$("trelloTokenInput").value.trim();
+  if(!TRELLO_KEY||!TRELLO_TOKEN){$("trelloStatus").textContent="\u26a0 Bitte Key und Token eingeben";return}
+  $("trelloStatus").textContent="Lade alle Boards...";
+  try{
+    const boards=await trelloFetch("/members/me/boards?fields=name,url");
+    const paBoards=boards.filter(b=>{const n=b.name.toLowerCase();return /\bpa\b/.test(n)||/\bpb\b/.test(n)||n.includes("patientengewinnung")||n.includes("pa-gewinnung")||n.includes("pa gewinnung")});
+    if(!paBoards.length){$("trelloStatus").textContent="\u26a0 Keine PA/PB/Patientengewinnung-Boards gefunden ("+boards.length+" Boards total)";return}
+    $("trelloStatus").textContent="Lade Karten aus "+paBoards.length+" PA-Boards...";
+    let allCards=[];let boardNames=[];
+    for(const b of paBoards){
+      const lists=await trelloFetch("/boards/"+b.id+"/lists?fields=id,name");
+      const cards=await trelloFetch("/boards/"+b.id+"/cards?fields=name,idList,labels,dateLastActivity");
+      const listMap={};lists.forEach(l=>listMap[l.id]=l.name);
+      cards.forEach(c=>{allCards.push({
+        name:c.name,board:b.name,listName:listMap[c.idList]||"",listId:c.idList,
+        stage:mapTrelloList(listMap[c.idList]||""),
+        date:c.dateLastActivity,labels:(c.labels||[]).map(l=>l.name).filter(Boolean)
+      })});
+      boardNames.push(b.name+" ("+cards.length+")");
+      $("trelloStatus").textContent="Geladen: "+boardNames.length+"/"+paBoards.length+" Boards, "+allCards.length+" Karten...";
+    }
+    trelloData={boards:paBoards,cards:allCards};
+    const staged=allCards.filter(c=>c.stage);
+    $("trelloStatus").innerHTML="\u2705 <b>"+paBoards.length+" PA-Boards</b> verbunden, <b>"+allCards.length+"</b> Karten geladen, <b>"+staged.length+"</b> in Funnel-Phasen.<br><span style='font-size:10px;color:var(--tD)'>"+boardNames.join(" \u00b7 ")+"</span>";
+    if(raw)renderTab();
+  }catch(e){$("trelloStatus").textContent="\u274c "+e.message;trelloData=null}
+}
+
+function getTrelloCounts(){
+  const counts={stattgefunden:0,bplan_erstellt:0,bplan_best:0,begonnen:0,beendet:0};
+  if(!trelloData)return counts;
+  trelloData.cards.forEach(c=>{if(c.stage&&counts[c.stage]!==undefined)counts[c.stage]++});
+  /* Cumulative: beendet also counts as begonnen, bplan_best, etc. */
+  counts.begonnen+=counts.beendet;
+  counts.bplan_best+=counts.begonnen;
+  counts.bplan_erstellt+=counts.bplan_best;
+  counts.stattgefunden+=counts.bplan_erstellt;
+  return counts;
+}
+
+function getTrelloCurrentCounts(){
+  const counts={stattgefunden:0,bplan_erstellt:0,bplan_best:0,begonnen:0,beendet:0};
+  if(!trelloData)return counts;
+  trelloData.cards.forEach(c=>{if(c.stage&&counts[c.stage]!==undefined)counts[c.stage]++});
+  return counts;
+}
+
+function inRange(dateStr){const{from,to}=getRange();const d=pd(dateStr);return d&&d>=from&&d<=to}
+function getLeads(){return raw.filter(r=>inRange(r.eingang))}
+
+function renderTab(){
+  $("headerSub").textContent="Fengler Consulting \u00b7 Patientengewinnung \u00b7 "+getRangeLabel();
+  $("footer").textContent="Airtable \u00b7 "+raw.length+" PA-Leads"+(trelloData?" \u00b7 Trello \u00b7 "+trelloData.cards.length+" Karten":"")+" \u00b7 "+new Date().toLocaleTimeString("de-DE");
+  $("ddSearchWrap").classList.toggle("hidden",curTab!=="deepdive");
+  try{
+    if(curTab==="overview")renderOverview();
+    else if(curTab==="funnel")renderFunnel();
+    else if(curTab==="deepdive")renderDeepDive();
+    else if(curTab==="meta")renderMeta();
+  }catch(e){console.error(e);$("content").innerHTML='<div class="empty"><div class="icon">\u26a0\ufe0f</div><h2>Fehler</h2><p style="color:var(--r)">'+esc(e.message)+'</p></div>'}
+}
+
+/* ===== TAB 1: OVERVIEW ===== */
+function renderOverview(){
+  const leads=getLeads(),tage=getTage(),wochen=Math.max(1,tage/7);
+  const kundenSet=new Set(leads.map(l=>l.kunde).filter(Boolean));
+  const lpw=kundenSet.size>0?(leads.length/kundenSet.size/wochen).toFixed(1):"0";
+  const perW=(n)=>(n/wochen).toFixed(1);
+  const pctOf=(n)=>leads.length>0?((n/leads.length)*100).toFixed(1)+"%":"\u2013";
+  const cnt={};leads.forEach(l=>{const s=l.status||"Kein Status";cnt[s]=(cnt[s]||0)+1});
+  const nichtErreicht=(cnt["Nicht erreicht"]||0)+(cnt["7x nicht erreicht"]||0);
+  const ablage=(cnt["In Ablage"]||0)+(cnt["In Ablage (von Kunde)"]||0);
+  const wiedervorlage=cnt["Wiedervorlage"]||0;
+  const fuVereinbart=cnt["Erreicht, FU fix vereinbart"]||0;
+  const terminNicht=cnt["Termin nicht stattgefunden \u2192 anrufen und erneut terminieren"]||0;
+
+  let h="";
+  h+='<div class="section-label">Patienten-Leads \u00b7 '+fmtTage(tage)+'</div><div class="kpi-row">';
+  h+=kpi("Leads gesamt",leads.length,kundenSet.size+" Praxen<br>\u00d8 "+perW(leads.length)+" / Woche","var(--ac)");
+  h+=kpi("\u00d8 pro Praxis / Woche",lpw,"Normiert auf 7 Tage","var(--purple)");
+  h+='</div>';
+
+  h+='<div class="section-label" style="margin-top:16px">Conversion-Phasen (aktueller Status)</div>';
+  if(trelloData)h+='<div style="font-size:11px;color:var(--tM);margin-bottom:8px">\ud83d\udccc Sp\u00e4tere Phasen aus Trello (ab Termin stattgefunden)</div>';
+  h+='<div class="kpi-row">';
+  const tc=getTrelloCurrentCounts();
+  FUNNEL_STAGES.forEach(s=>{
+    const isTrelloStage=["stattgefunden","bplan_erstellt","bplan_best","begonnen","beendet"].includes(s.key);
+    const n=isTrelloStage&&trelloData?tc[s.key]:(cnt[s.label]||0);
+    const src=isTrelloStage&&trelloData?" (Trello)":"";
+    h+=kpi(s.label,n,pctOf(n)+" der Leads<br>\u00d8 "+perW(n)+" / Woche"+src,s.color);
+  });
+  h+='</div>';
+
+  h+='<div class="section-label" style="margin-top:16px">Dropout / Ausstehend</div><div class="kpi-row">';
+  h+=kpi("Nicht erreicht",nichtErreicht,pctOf(nichtErreicht)+" \u00b7 \u00d8 "+perW(nichtErreicht)+" / Woche<br>inkl. 7x nicht err.","var(--am)");
+  h+=kpi("FU fix vereinbart",fuVereinbart,pctOf(fuVereinbart)+" \u00b7 \u00d8 "+perW(fuVereinbart)+" / Woche<br>Erreicht, Follow-Up","var(--sky)");
+  h+=kpi("Wiedervorlage",wiedervorlage,pctOf(wiedervorlage)+" \u00b7 \u00d8 "+perW(wiedervorlage)+" / Woche<br>Erneut kontaktieren","var(--am)");
+  h+=kpi("Termin n. stattgef.",terminNicht,pctOf(terminNicht)+" \u00b7 \u00d8 "+perW(terminNicht)+" / Woche<br>Erneut terminieren","var(--r)");
+  h+=kpi("In Ablage",ablage,pctOf(ablage)+" \u00b7 \u00d8 "+perW(ablage)+" / Woche<br>inkl. von Kunde","var(--tD)");
+  h+='</div>';
+
+  // Chart: Leads per Praxis with Ø/Woche
+  const byK={};leads.forEach(l=>{const k=l.kunde||"Unbekannt";byK[k]=(byK[k]||0)+1});
+  const chart=Object.entries(byK).sort((a,b)=>b[1]-a[1]);const maxB=chart.length?chart[0][1]:1;
+  h+='<div class="card" style="margin-top:16px"><div class="card-title">Leads nach Praxis ('+leads.length+')</div>';
+  if(chart.length){chart.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/maxB)*100);const lbl=k.length>30?k.substring(0,28)+"\u2026":k;const pw=(v/wochen).toFixed(1);h+='<div class="bar-row"><div class="bl" title="'+esc(k)+'">'+esc(lbl)+'</div><div class="bw"><div class="bf cyan" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--ac)">'+v+'</div><div style="font-size:11px;color:var(--tD);width:70px;text-align:right">\u00d8 '+pw+'/Wo</div></div>'})}
+  else h+='<div class="no-data">Keine Leads</div>';
+  h+='</div>';
+
+  // Chart: Leads per Behandlungsart with Ø/Woche
+  const byBeh={};leads.forEach(l=>{const b=l.behandlung||"Unbekannt";byBeh[b]=(byBeh[b]||0)+1});
+  const behChart=Object.entries(byBeh).sort((a,b)=>b[1]-a[1]);const maxBeh=behChart.length?behChart[0][1]:1;
+  h+='<div class="card"><div class="card-title">Leads nach Behandlungsart</div>';
+  if(behChart.length){behChart.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/maxBeh)*100);const pw=(v/wochen).toFixed(1);h+='<div class="bar-row"><div class="bl" title="'+esc(k)+'">'+esc(k)+'</div><div class="bw"><div class="bf purple" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--purple)">'+v+'</div><div style="font-size:11px;color:var(--tD);width:70px;text-align:right">\u00d8 '+pw+'/Wo</div></div>'})}
+  h+='</div>';
+
+  // Deep Dive: Kunden pro Behandlungsart
+  const behKunden={};
+  leads.forEach(l=>{
+    const b=l.behandlung||"Unbekannt",k=l.kunde||"Unbekannt";
+    if(!behKunden[b])behKunden[b]={};
+    behKunden[b][k]=(behKunden[b][k]||0)+1;
+  });
+  const behSorted=Object.entries(behKunden).sort((a,b)=>Object.values(b[1]).reduce((s,v)=>s+v,0)-Object.values(a[1]).reduce((s,v)=>s+v,0));
+  h+='<div class="card"><div class="card-title">Kunden pro Behandlungsart (Deep Dive)</div>';
+  behSorted.forEach(function(e){
+    const beh=e[0],kunden=e[1];
+    const kundenSorted=Object.entries(kunden).sort((a,b)=>b[1]-a[1]);
+    const total=kundenSorted.reduce((s,x)=>s+x[1],0);
+    h+='<div style="margin-bottom:14px"><div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--t)">'+esc(beh)+' <span style="font-weight:400;color:var(--tD)">('+total+' Leads, '+kundenSorted.length+' Praxen)</span></div>';
+    const mx=kundenSorted[0]?kundenSorted[0][1]:1;
+    kundenSorted.forEach(function(x){
+      const k=x[0],v=x[1];const pct=Math.max(3,(v/mx)*100);const pw=(v/wochen).toFixed(1);
+      h+='<div class="bar-row"><div class="bl" style="width:180px;min-width:80px" title="'+esc(k)+'">'+esc(k.length>25?k.substring(0,23)+"\u2026":k)+'</div><div class="bw"><div class="bf teal" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--teal)">'+v+'</div><div style="font-size:11px;color:var(--tD);width:70px;text-align:right">\u00d8 '+pw+'/Wo</div></div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+
+  // Summary
+  let tt="\ud83e\uddb7 Patientengewinnung \u00b7 KPIs\n"+getRangeLabel()+"\n\n\ud83d\udce5 Leads: "+leads.length+" (\u00d8 "+perW(leads.length)+"/Wo, "+kundenSet.size+" Praxen)\n\ud83d\udcc8 \u00d8 "+lpw+" Leads/Praxis/Woche\n";
+  var icons={"qualifiziert":"\ud83d\udcde","termin":"\ud83d\udcc5","stattgefunden":"\u2705","bplan_erstellt":"\ud83d\udcdd","bplan_best":"\ud83d\udccb","begonnen":"\ud83d\udc8a","beendet":"\ud83c\udfc1"};
+  var stc=getTrelloCurrentCounts();
+  FUNNEL_STAGES.forEach(s=>{
+    const isTr=["stattgefunden","bplan_erstellt","bplan_best","begonnen","beendet"].includes(s.key);
+    const n=isTr&&trelloData?stc[s.key]:(cnt[s.label]||0);
+    tt+=(icons[s.key]||"\u2022")+" "+s.label+": "+n+" (\u00d8 "+perW(n)+"/Wo)"+(isTr&&trelloData?" [Trello]":"")+"\n";
+  });
+  tt+="\n\u274c Nicht erreicht: "+nichtErreicht+" ("+pctOf(nichtErreicht)+")\n\ud83d\udcc2 In Ablage: "+ablage+" ("+pctOf(ablage)+")\n";
+  h+='<div class="card"><div class="card-title"><span>\ud83d\udccb Zusammenfassung</span><button class="copy-btn" onclick="copyText(\'trelloText\')">Kopieren</button></div><pre class="trello" id="trelloText">'+esc(tt)+'</pre></div>';
+  $("content").innerHTML=h;
+}
+
+/* ===== TAB 2: FUNNEL ===== */
+function renderFunnel(){
+  const leads=getLeads(),tage=getTage(),total=leads.length;
+  const fc={};FUNNEL_STAGES.forEach(s=>{fc[s.key]=countReached(leads,s.level)});
+  /* Merge Trello cumulative counts for later stages */
+  const trc=getTrelloCounts();
+  const TRELLO_STAGES=["stattgefunden","bplan_erstellt","bplan_best","begonnen","beendet"];
+  TRELLO_STAGES.forEach(k=>{if(trelloData)fc[k]=Math.max(fc[k],trc[k])});
+
+  let h="";
+  h+='<div class="info-banner">\ud83d\udd04 <b>Patient Funnel</b> \u2013 kumulative Ansicht. Jede Stufe z\u00e4hlt alle Patienten, die <em>mindestens</em> diesen Status erreicht haben.';
+  if(trelloData)h+=' <b>Sp\u00e4tere Phasen erg\u00e4nzt aus Trello.</b>';
+  else h+=' <span style="color:var(--am)">\u26a0 Sp\u00e4tere Phasen (ab Termin stattgef.) unvollst\u00e4ndig \u2013 Trello verbinden f\u00fcr vollst\u00e4ndige Daten.</span>';
+  h+='</div>';
+
+  h+='<div class="card"><div class="card-title">Conversion Funnel (kumulativ)</div><div class="funnel">';
+  h+='<div class="funnel-step"><div class="funnel-label">Leads gesamt</div><div class="funnel-val" style="color:var(--ac)">'+total+'</div><div style="flex:1"><div class="funnel-bar" style="width:100%;background:var(--ac)">100%</div></div></div>';
+  FUNNEL_STAGES.forEach(s=>{
+    const n=fc[s.key];const pct=total>0?Math.max(5,(n/total)*100):0;
+    const pctL=total>0?((n/total)*100).toFixed(1)+"%":"0%";
+    h+='<div class="funnel-step"><div class="funnel-label">'+s.label+'</div><div class="funnel-val" style="color:'+s.color+'">'+n+'</div><div style="flex:1"><div class="funnel-bar" style="width:'+pct+'%;background:'+s.color+'">'+pctL+'</div></div></div>';
+  });
+  h+='</div></div>';
+
+  // Step by step
+  h+='<div class="card"><div class="card-title">Step-by-Step Conversion Rates</div><div class="kpi-row">';
+  var pairs=[
+    {from:"Lead",fv:total,to:"Qualifiziert",tv:fc.qualifiziert,c:"var(--purple)"},
+    {from:"Qualif.",fv:fc.qualifiziert,to:"Termin",tv:fc.termin,c:"var(--ac)"},
+    {from:"Termin",fv:fc.termin,to:"Stattgef.",tv:fc.stattgefunden,c:"var(--sky)"},
+    {from:"Stattgef.",fv:fc.stattgefunden,to:"BPlan erst.",tv:fc.bplan_erstellt,c:"var(--teal)"},
+    {from:"BPlan erst.",fv:fc.bplan_erstellt,to:"BPlan best.",tv:fc.bplan_best,c:"var(--lime)"},
+    {from:"BPlan best.",fv:fc.bplan_best,to:"Beh. beg.",tv:fc.begonnen,c:"var(--g)"},
+    {from:"Beh. beg.",fv:fc.begonnen,to:"Beendet",tv:fc.beendet,c:"#047857"}
+  ];
+  pairs.forEach(p=>{
+    const rate=p.fv>0?((p.tv/p.fv)*100).toFixed(1)+"%":"\u2013";
+    h+=kpi(p.from+" \u2192 "+p.to,rate,p.tv+" von "+p.fv,p.c);
+  });
+  h+='</div></div>';
+
+  // All statuses
+  const byStatus={};leads.forEach(l=>{const s=l.status||"Kein Status";byStatus[s]=(byStatus[s]||0)+1});
+  h+='<div class="card"><div class="card-title">Status-Verteilung ('+total+' Leads)</div>';
+  const sc=Object.entries(byStatus).sort((a,b)=>b[1]-a[1]);const mx=sc.length?sc[0][1]:1;
+  sc.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/mx)*100);const isDrop=DROPOUT_STATUSES.has(k);
+    h+='<div class="bar-row"><div class="bl" title="'+esc(k)+'">'+esc(k.length>40?k.substring(0,38)+"\u2026":k)+'</div><div class="bw"><div class="bf '+(isDrop?"amber":"green")+'" style="width:'+pct+'%"></div></div><div class="bv" style="color:'+(isDrop?"var(--am)":"var(--g)")+'">'+v+'</div></div>'});
+  h+='</div>';
+
+  // Per Kunde
+  h+='<div class="card"><div class="card-title">Funnel nach Praxis</div>';
+  const km={};
+  leads.forEach(l=>{const k=l.kunde||"Unbekannt";if(!km[k])km[k]={total:0};km[k].total++;
+    FUNNEL_STAGES.forEach(s=>{if(!km[k][s.key])km[k][s.key]=0;if(hasReached(l.status,s.level))km[k][s.key]++})});
+  const kl=Object.entries(km).sort((a,b)=>b[1].total-a[1].total);
+  if(kl.length){
+    h+='<div style="overflow-x:auto"><table><thead><tr><th>Praxis</th><th style="text-align:center">Leads</th><th style="text-align:center">Qualif.</th><th style="text-align:center">Termin</th><th style="text-align:center">Stattgef.</th><th style="text-align:center">BPlan</th><th style="text-align:center">Beh.beg.</th><th style="text-align:center">Beendet</th><th style="text-align:center">Conv.</th></tr></thead><tbody>';
+    kl.forEach(function(e){const k=e[0],v=e[1];const conv=v.total>0?((v.begonnen/v.total)*100).toFixed(1)+"%":"\u2013";
+      h+='<tr><td class="name">'+esc(k)+'</td><td style="text-align:center">'+v.total+'</td>';
+      h+='<td style="text-align:center;color:var(--purple)">'+v.qualifiziert+'</td>';
+      h+='<td style="text-align:center;color:var(--ac)">'+v.termin+'</td>';
+      h+='<td style="text-align:center;color:var(--sky)">'+v.stattgefunden+'</td>';
+      h+='<td style="text-align:center;color:var(--teal)">'+v.bplan_erstellt+'</td>';
+      h+='<td style="text-align:center;color:var(--g);font-weight:600">'+v.begonnen+'</td>';
+      h+='<td style="text-align:center;color:#047857;font-weight:600">'+v.beendet+'</td>';
+      h+='<td style="text-align:center;color:var(--purple);font-weight:500">'+conv+'</td></tr>'});
+    h+='</tbody></table></div>'}
+  h+='</div>';
+
+  /* Trello cards breakdown */
+  if(trelloData&&trelloData.cards.length){
+    h+='<div class="card"><div class="card-title">\ud83d\udccb Trello-Karten nach Phase ('+trelloData.boards.length+' PA-Boards)</div>';
+    const byStage={};trelloData.cards.forEach(c=>{if(!c.stage)return;const ln=c.listName;if(!byStage[ln])byStage[ln]=[];byStage[ln].push(c)});
+    Object.entries(byStage).forEach(function(e){
+      const ln=e[0],cards=e[1];
+      const stage=mapTrelloList(ln);
+      const stageColor=stage?FUNNEL_STAGES.find(s=>s.key===stage)?.color||"var(--tM)":"var(--tD)";
+      h+='<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;margin-bottom:4px;color:'+stageColor+'">'+esc(ln)+' <span style="font-weight:400;color:var(--tD)">('+cards.length+')</span></div>';
+      cards.forEach(c=>{
+        if(c.name.toLowerCase().includes("skript"))return;
+        const boardShort=c.board.replace(/\|/g,"").replace(/PA/g,"").trim();
+        h+='<div style="font-size:12px;color:var(--tM);padding:2px 0;margin-left:12px">\u2022 '+esc(c.name)+' <span style="color:var(--tD);font-size:10px">\u2013 '+esc(boardShort)+'</span></div>';
+      });
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+
+  $("content").innerHTML=h;
+}
+
+/* ===== TAB 3: KUNDEN DEEP DIVE ===== */
+function renderDeepDive(){
+  const leads=getLeads();const km={};
+  leads.forEach(l=>{const k=l.kunde||"Unbekannt";if(!km[k])km[k]={name:k,company:l.company||"",leads:[]};km[k].leads.push(l)});
+  Object.values(km).forEach(k=>{FUNNEL_STAGES.forEach(s=>{k[s.key]=k.leads.filter(l=>hasReached(l.status,s.level)).length})});
+  const kunden=Object.values(km).sort((a,b)=>b.leads.length-a.leads.length);
+  const tage=getTage();let h="";
+
+  if(!ddSearch){
+    h+='<div class="info-banner">\ud83d\udccb <b>'+kunden.length+' Praxen</b> mit Leads im Zeitraum ('+fmtTage(tage)+'). Klicke auf eine Praxis oder nutze die Suche.</div>';
+    h+='<div class="card"><div class="card-title">Alle Praxen</div><div style="overflow-x:auto"><table><thead><tr><th>Praxis</th><th style="text-align:center">Leads</th><th style="text-align:center">Qualif.</th><th style="text-align:center">Termin</th><th style="text-align:center">Beh.beg.</th><th style="text-align:center">Beendet</th><th style="text-align:center">Conv.</th></tr></thead><tbody>';
+    kunden.forEach(k=>{
+      const conv=k.leads.length>0?((k.begonnen/k.leads.length)*100).toFixed(1)+"%":"\u2013";
+      h+='<tr style="cursor:pointer" onclick="document.getElementById(\'ddSearchInput\').value=this.dataset.k;ddSearchChange(this.dataset.k)" data-k="'+esc(k.name)+'">';
+      h+='<td class="name">'+esc(k.name)+'</td><td style="text-align:center">'+k.leads.length+'</td>';
+      h+='<td style="text-align:center;color:var(--purple)">'+k.qualifiziert+'</td>';
+      h+='<td style="text-align:center;color:var(--ac)">'+k.termin+'</td>';
+      h+='<td style="text-align:center;color:var(--g);font-weight:600">'+k.begonnen+'</td>';
+      h+='<td style="text-align:center;color:#047857;font-weight:600">'+k.beendet+'</td>';
+      h+='<td style="text-align:center;color:var(--purple);font-weight:500">'+conv+'</td></tr>'});
+    h+='</tbody></table></div></div>';
+  } else {
+    const q=ddSearch.toLowerCase();
+    const matches=kunden.filter(k=>k.name.toLowerCase().includes(q)||k.company.toLowerCase().includes(q));
+    if(!matches.length){h+='<div class="empty"><div class="icon">\ud83d\udd0d</div><h2>Keine Praxis gefunden</h2><p>Keine Praxis passt zu "'+esc(ddSearch)+'".</p></div>';}
+    else {
+      matches.forEach(k=>{
+        const conv=k.leads.length>0?((k.begonnen/k.leads.length)*100).toFixed(1)+"%":"\u2013";
+        h+='<div class="card"><div class="kunde-header"><div><h3>'+esc(k.name)+'</h3>';
+        if(k.company)h+='<div class="kunde-sub">'+esc(k.company)+'</div>';
+        h+='</div><div class="kunde-stats">';
+        h+='<div class="kunde-stat"><div class="val" style="color:var(--ac)">'+k.leads.length+'</div><div class="lbl">Leads</div></div>';
+        FUNNEL_STAGES.forEach(s=>{h+='<div class="kunde-stat"><div class="val" style="color:'+s.color+'">'+k[s.key]+'</div><div class="lbl">'+s.label.replace("Behandlungsplan","BPlan").replace("Behandlung","Beh.")+'</div></div>'});
+        h+='<div class="kunde-stat"><div class="val" style="color:var(--purple)">'+conv+'</div><div class="lbl">Conversion</div></div>';
+        h+='</div></div>';
+
+        // Mini funnel
+        const kT=k.leads.length;
+        h+='<div class="funnel" style="margin-bottom:14px">';
+        h+='<div class="funnel-step"><div class="funnel-label" style="width:160px">Leads</div><div class="funnel-val" style="color:var(--ac);width:35px">'+kT+'</div><div style="flex:1"><div class="funnel-bar" style="width:100%;background:var(--ac);font-size:10px">100%</div></div></div>';
+        FUNNEL_STAGES.forEach(s=>{const n=k[s.key],pct=kT>0?Math.max(5,(n/kT)*100):0;
+          h+='<div class="funnel-step"><div class="funnel-label" style="width:160px">'+s.label+'</div><div class="funnel-val" style="color:'+s.color+';width:35px">'+n+'</div><div style="flex:1"><div class="funnel-bar" style="width:'+pct+'%;background:'+s.color+';font-size:10px">'+(kT>0?((n/kT)*100).toFixed(0)+"%":"")+'</div></div></div>'});
+        h+='</div>';
+
+        // By Behandlungsart
+        const byBeh={};k.leads.forEach(l=>{const b=l.behandlung||"\u2013";if(!byBeh[b])byBeh[b]={total:0,beg:0,end:0};byBeh[b].total++;if(hasReached(l.status,11))byBeh[b].beg++;if(hasReached(l.status,12))byBeh[b].end++});
+        const bl=Object.entries(byBeh).sort((a,b)=>b[1].total-a[1].total);
+        if(bl.length>1){
+          h+='<div class="card-title" style="margin-top:4px">Nach Behandlungsart</div>';
+          h+='<div style="overflow-x:auto;margin-bottom:10px"><table><thead><tr><th>Behandlung</th><th style="text-align:center">Leads</th><th style="text-align:center">Beh. begonnen</th><th style="text-align:center">Beendet</th></tr></thead><tbody>';
+          bl.forEach(function(e){h+='<tr><td class="name">'+esc(e[0])+'</td><td style="text-align:center">'+e[1].total+'</td><td style="text-align:center;color:var(--g);font-weight:600">'+e[1].beg+'</td><td style="text-align:center;color:#047857;font-weight:600">'+e[1].end+'</td></tr>'});
+          h+='</tbody></table></div>'}
+
+        // All leads
+        h+='<div class="card-title" style="margin-top:4px">Alle Leads ('+k.leads.length+')</div>';
+        h+='<div style="overflow-x:auto"><table><thead><tr><th>Eingang</th><th>Patient</th><th>Behandlung</th><th>Status</th></tr></thead><tbody>';
+        var sorted=[...k.leads].sort((a,b)=>(pd(b.eingang)||0)-(pd(a.eingang)||0));
+        sorted.forEach(l=>{h+='<tr><td class="date">'+fd(l.eingang)+'</td><td class="name">'+esc(l.name)+'</td><td class="stelle">'+esc(l.behandlung)+'</td><td>'+statusTag(l.status)+'</td></tr>'});
+        h+='</tbody></table></div></div>'});
+    }
+  }
+  $("content").innerHTML=h;
+}
+function ddSearchChange(v){ddSearch=v;renderDeepDive()}
+
+/* ===== TAB 4: META ADS ===== */
+function renderMeta(){
+  const leads=getLeads(),tage=getTage();
+  const withUtm=leads.filter(l=>l.utm_source||l.utm_campaign||l.utm_content);
+  const noUtm=leads.filter(l=>!l.utm_source&&!l.utm_campaign&&!l.utm_content);
+  let h="";
+  h+='<div class="info-banner">\ud83d\udce3 <b>UTM-Tracking</b> aus Airtable. Von '+leads.length+' Leads haben <b>'+withUtm.length+'</b> UTM-Daten und <b>'+noUtm.length+'</b> sind ohne Tracking.</div>';
+  h+='<div class="kpi-row" style="margin-bottom:16px">';
+  h+=kpi("Leads gesamt",leads.length,fmtTage(tage),"var(--ac)");
+  h+=kpi("Mit UTM-Tracking",withUtm.length,(leads.length>0?((withUtm.length/leads.length)*100).toFixed(0):0)+"% getrackt","var(--g)");
+  h+=kpi("Ohne Tracking",noUtm.length,"Kein utm_source","var(--tD)");
+  h+='</div>';
+
+  const bySrc={};withUtm.forEach(l=>{const s=l.utm_source||"unbekannt";bySrc[s]=(bySrc[s]||0)+1});
+  const srcC=Object.entries(bySrc).sort((a,b)=>b[1]-a[1]);const srcM=srcC.length?srcC[0][1]:1;
+  h+='<div class="card"><div class="card-title">Leads nach Quelle (utm_source)</div>';
+  if(srcC.length){srcC.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/srcM)*100);const lbl=k==="ig"?"Instagram (ig)":k==="fb"?"Facebook (fb)":k;h+='<div class="bar-row"><div class="bl">'+esc(lbl)+'</div><div class="bw"><div class="bf teal" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--teal)">'+v+'</div></div>'})}
+  else h+='<div class="no-data">Keine UTM-Daten</div>';
+  h+='</div>';
+
+  const byCmp={};withUtm.forEach(l=>{const c=l.utm_campaign||"\u2013";byCmp[c]=(byCmp[c]||0)+1});
+  const cmpC=Object.entries(byCmp).sort((a,b)=>b[1]-a[1]).slice(0,15);const cmpM=cmpC.length?cmpC[0][1]:1;
+  h+='<div class="card"><div class="card-title">Top Kampagnen (utm_campaign)</div>';
+  if(cmpC.length){cmpC.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/cmpM)*100);const lbl=k.length>50?k.substring(0,48)+"\u2026":k;h+='<div class="bar-row"><div class="bl" title="'+esc(k)+'">'+esc(lbl)+'</div><div class="bw"><div class="bf purple" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--purple)">'+v+'</div></div>'})}
+  else h+='<div class="no-data">Keine Kampagnen-Daten</div>';
+  h+='</div>';
+
+  const byCnt={};withUtm.forEach(l=>{const c=l.utm_content||"\u2013";byCnt[c]=(byCnt[c]||0)+1});
+  const cntC=Object.entries(byCnt).sort((a,b)=>b[1]-a[1]).slice(0,15);const cntM=cntC.length?cntC[0][1]:1;
+  h+='<div class="card"><div class="card-title">Top Anzeigen / Creatives (utm_content)</div>';
+  if(cntC.length){cntC.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/cntM)*100);const lbl=k.length>50?k.substring(0,48)+"\u2026":k;h+='<div class="bar-row"><div class="bl" title="'+esc(k)+'">'+esc(lbl)+'</div><div class="bw"><div class="bf amber" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--am)">'+v+'</div></div>'})}
+  else h+='<div class="no-data">Keine Content-Daten</div>';
+  h+='</div>';
+
+  const utmConv=withUtm.filter(l=>hasReached(l.status,6));
+  if(utmConv.length){
+    h+='<div class="card"><div class="card-title">Getrackte Leads ab Termin aufw\u00e4rts ('+utmConv.length+')</div>';
+    h+='<div style="overflow-x:auto"><table><thead><tr><th>Eingang</th><th>Patient</th><th>Praxis</th><th>Status</th><th>Source</th><th>Campaign</th></tr></thead><tbody>';
+    [...utmConv].sort((a,b)=>(pd(b.eingang)||0)-(pd(a.eingang)||0)).forEach(l=>{
+      const srcTag=l.utm_source?'<span class="tag src">'+esc(l.utm_source)+'</span>':"\u2013";
+      const cmpTag=l.utm_campaign?'<span class="tag cmp" title="'+esc(l.utm_campaign)+'">'+esc(l.utm_campaign.length>30?l.utm_campaign.substring(0,28)+"\u2026":l.utm_campaign)+'</span>':"\u2013";
+      h+='<tr><td class="date">'+fd(l.eingang)+'</td><td class="name">'+esc(l.name)+'</td><td class="dim">'+esc(l.kunde)+'</td><td>'+statusTag(l.status)+'</td><td>'+srcTag+'</td><td>'+cmpTag+'</td></tr>'});
+    h+='</tbody></table></div></div>'}
+  $("content").innerHTML=h;
+}
+
+/* ===== SHARED ===== */
+function kpi(label,value,sub,color){return'<div class="kpi"><div class="kl"><span class="dot" style="background:'+color+'"></span>'+label+'</div><div class="kv">'+value+'</div><div class="ks">'+sub+'</div></div>'}
+function copyText(id){const t=document.getElementById(id).textContent;navigator.clipboard.writeText(t).then(()=>{const btns=document.querySelectorAll(".copy-btn");btns.forEach(b=>{if(b.closest(".card")?.querySelector("#"+id)){b.textContent="\u2713 Kopiert!";setTimeout(()=>b.textContent="Kopieren",2000)}})})}
+if(PAT){document.addEventListener("DOMContentLoaded",()=>{$("reloadBtn").classList.remove("hidden");loadData()})}
+</script></body></html>
