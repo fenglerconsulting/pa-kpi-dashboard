@@ -627,11 +627,10 @@ function renderPipeline(){
 function renderDeepDive(){
   const leads=getLeads();const km={};
   leads.forEach(l=>{const k=l.kunde||"Unbekannt";if(!km[k])km[k]={name:k,company:l.company||"",leads:[]};km[k].leads.push(l)});
-  // Count all stages per customer
+  // Count all stages per customer - EXACT current status (not cumulative)
   Object.values(km).forEach(k=>{
     ALL_STAGES.forEach(s=>{
-      if(POSITIVE_STATUSES.has(s.label)){k[s.key]=k.leads.filter(l=>hasReached(l.status,s.level)).length}
-      else{k[s.key]=k.leads.filter(l=>(l.status||"Kein Status")===s.label).length}
+      k[s.key]=k.leads.filter(l=>(l.status||"Kein Status")===s.label).length;
     });
   });
   const kunden=Object.values(km).sort((a,b)=>b.leads.length-a.leads.length);
@@ -693,7 +692,7 @@ function renderDeepDive(){
         h+='</div>';
 
         // By Behandlungsart
-        const byBeh={};k.leads.forEach(l=>{const b=l.behandlung||"\u2013";if(!byBeh[b])byBeh[b]={total:0,beg:0,end:0};byBeh[b].total++;if(hasReached(l.status,11))byBeh[b].beg++;if(hasReached(l.status,12))byBeh[b].end++});
+        const byBeh={};k.leads.forEach(l=>{const b=l.behandlung||"\u2013";if(!byBeh[b])byBeh[b]={total:0,beg:0,end:0};byBeh[b].total++;if(l.status==="Behandlung begonnen")byBeh[b].beg++;if(l.status==="Behandlung beendet")byBeh[b].end++});
         const bl=Object.entries(byBeh).sort((a,b)=>b[1].total-a[1].total);
         if(bl.length>1){
           h+='<div class="card-title" style="margin-top:10px">Nach Behandlungsart</div>';
