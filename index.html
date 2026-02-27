@@ -128,7 +128,8 @@
   </div>
   <div class="tabs hidden" id="tabBar">
     <div class="tab active" onclick="switchTab('overview',this)"><span class="ti">📊</span>Übersicht</div>
-    <div class="tab" onclick="switchTab('funnel',this)"><span class="ti">🔄</span>Funnel</div>
+    <div class="tab" onclick="switchTab('conversion',this)"><span class="ti">📈</span>Conversion</div>
+    <div class="tab" onclick="switchTab('pipeline',this)"><span class="ti">📋</span>Trello Pipeline</div>
     <div class="tab" onclick="switchTab('deepdive',this)"><span class="ti">🔍</span>Kunden Deep Dive</div>
     <div class="tab" onclick="switchTab('meta',this)"><span class="ti">📣</span>Meta Ads</div>
   </div>
@@ -281,8 +282,6 @@ async function trelloFetch(path){
   return r.json();
 }
 
-async function loadTrelloBoards(){/* unused */}
-
 async function connectTrello(){
   TRELLO_KEY=$("trelloKeyInput").value.trim();TRELLO_TOKEN=$("trelloTokenInput").value.trim();
   if(!TRELLO_KEY||!TRELLO_TOKEN){$("trelloStatus").textContent="\u26a0 Bitte Key und Token eingeben";return}
@@ -320,10 +319,6 @@ function getTrelloCounts(){
   return counts;
 }
 
-function getTrelloCurrentCounts(){
-  return getTrelloCounts();
-}
-
 function getTrelloTotal(){
   if(!trelloData)return 0;
   const c=getTrelloCounts();
@@ -339,7 +334,8 @@ function renderTab(){
   $("ddSearchWrap").classList.toggle("hidden",curTab!=="deepdive");
   try{
     if(curTab==="overview")renderOverview();
-    else if(curTab==="funnel")renderFunnel();
+    else if(curTab==="conversion")renderConversion();
+    else if(curTab==="pipeline")renderPipeline();
     else if(curTab==="deepdive")renderDeepDive();
     else if(curTab==="meta")renderMeta();
   }catch(e){console.error(e);$("content").innerHTML='<div class="empty"><div class="icon">\u26a0\ufe0f</div><h2>Fehler</h2><p style="color:var(--r)">'+esc(e.message)+'</p></div>'}
@@ -365,85 +361,67 @@ function renderOverview(){
   h+=kpi("\u00d8 pro Praxis / Woche",lpw,"Normiert auf 7 Tage","var(--purple)");
   h+='</div>';
 
-  h+='<div class="section-label" style="margin-top:16px">Conversion-Phasen (aktueller Status in Airtable)</div>';
+  // ALL phases as KPIs (Airtable only, time-filtered)
+  h+='<div class="section-label" style="margin-top:16px">Conversion-Phasen (Leads im Zeitraum, aktueller Airtable-Status)</div>';
   h+='<div class="kpi-row">';
   FUNNEL_STAGES.forEach(s=>{
-    const isTrelloOnly=["stattgefunden","bplan_erstellt","bplan_best","begonnen","beendet"].includes(s.key);
-    if(isTrelloOnly)return; /* Show only Airtable-tracked phases here */
     const n=cnt[s.label]||0;
-    h+=kpi(s.label,n,pctOf(n)+" der Leads<br>\u00d8 "+perW(n)+" / Woche",s.color);
+    h+=kpi(s.label,n,pctOf(n)+" \u00b7 \u00d8 "+perW(n)+"/Wo",s.color);
   });
   h+='</div>';
 
-  /* Trello pipeline for later phases */
-  if(trelloData){
-    const tc=getTrelloCounts();
-    const trelloTotal=getTrelloTotal();
-    h+='<div class="section-label" style="margin-top:16px">Sp\u00e4tere Phasen (aktuell in Trello-Pipeline: '+trelloTotal+' Patienten)</div>';
-    h+='<div class="kpi-row">';
-    const TRELLO_PHASES=[
-      {key:"stattgefunden",label:"Termin stattgefunden",color:"var(--sky)"},
-      {key:"bplan_erstellt",label:"BPlan erstellt",color:"var(--teal)"},
-      {key:"bplan_best",label:"BPlan best\u00e4tigt",color:"var(--lime)"},
-      {key:"begonnen",label:"Beh. begonnen",color:"var(--g)"},
-      {key:"beendet",label:"Beh. beendet",color:"#047857"}
-    ];
-    TRELLO_PHASES.forEach(s=>{
-      h+=kpi(s.label,tc[s.key],"Trello-Pipeline",s.color);
-    });
-    h+='</div>';
-  } else {
-    h+='<div class="section-label" style="margin-top:16px">Sp\u00e4tere Phasen <span style="color:var(--am)">\u2013 Trello verbinden</span></div>';
-    h+='<div class="kpi-row">';
-    ["Termin stattgefunden","Behandlungsplan erstellt","Behandlungsplan best\u00e4tigt","Behandlung begonnen","Behandlung beendet"].forEach(label=>{
-      const n=cnt[label]||0;
-      h+=kpi(label,n,pctOf(n)+" (nur Airtable)","var(--tD)");
-    });
-    h+='</div>';
-  }
-
   h+='<div class="section-label" style="margin-top:16px">Dropout / Ausstehend</div><div class="kpi-row">';
-  h+=kpi("Nicht erreicht",nichtErreicht,pctOf(nichtErreicht)+" \u00b7 \u00d8 "+perW(nichtErreicht)+" / Woche<br>inkl. 7x nicht err.","var(--am)");
-  h+=kpi("FU fix vereinbart",fuVereinbart,pctOf(fuVereinbart)+" \u00b7 \u00d8 "+perW(fuVereinbart)+" / Woche<br>Erreicht, Follow-Up","var(--sky)");
-  h+=kpi("Wiedervorlage",wiedervorlage,pctOf(wiedervorlage)+" \u00b7 \u00d8 "+perW(wiedervorlage)+" / Woche<br>Erneut kontaktieren","var(--am)");
-  h+=kpi("Termin n. stattgef.",terminNicht,pctOf(terminNicht)+" \u00b7 \u00d8 "+perW(terminNicht)+" / Woche<br>Erneut terminieren","var(--r)");
-  h+=kpi("In Ablage",ablage,pctOf(ablage)+" \u00b7 \u00d8 "+perW(ablage)+" / Woche<br>inkl. von Kunde","var(--tD)");
+  h+=kpi("Nicht erreicht",nichtErreicht,pctOf(nichtErreicht)+" \u00b7 \u00d8 "+perW(nichtErreicht)+"/Wo<br>inkl. 7x nicht err.","var(--am)");
+  h+=kpi("FU fix vereinbart",fuVereinbart,pctOf(fuVereinbart)+" \u00b7 \u00d8 "+perW(fuVereinbart)+"/Wo","var(--sky)");
+  h+=kpi("Wiedervorlage",wiedervorlage,pctOf(wiedervorlage)+" \u00b7 \u00d8 "+perW(wiedervorlage)+"/Wo","var(--am)");
+  h+=kpi("Termin n. stattgef.",terminNicht,pctOf(terminNicht)+" \u00b7 \u00d8 "+perW(terminNicht)+"/Wo","var(--r)");
+  h+=kpi("In Ablage",ablage,pctOf(ablage)+" \u00b7 \u00d8 "+perW(ablage)+"/Wo","var(--tD)");
   h+='</div>';
 
-  // Chart: Leads per Praxis with Ø/Woche
+  // Status-Verteilung: ALL statuses with colored bars (Airtable, time-filtered)
+  const allStatuses=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const smx=allStatuses.length?allStatuses[0][1]:1;
+  h+='<div class="card" style="margin-top:16px"><div class="card-title">Status-Verteilung \u2013 Airtable ('+leads.length+' Leads im Zeitraum)</div>';
+  allStatuses.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/smx)*100);const isDrop=DROPOUT_STATUSES.has(k);const isPos=POSITIVE_STATUSES.has(k);
+    const cls=isDrop?"amber":isPos?"green":"sky";
+    h+='<div class="bar-row"><div class="bl" title="'+esc(k)+'">'+esc(k.length>40?k.substring(0,38)+"\u2026":k)+'</div><div class="bw"><div class="bf '+cls+'" style="width:'+pct+'%"></div></div><div class="bv" style="color:'+(isDrop?"var(--am)":isPos?"var(--g)":"var(--sky)")+'">'+v+'</div><div style="font-size:11px;color:var(--tD);width:50px;text-align:right">'+pctOf(v)+'</div></div>'});
+  // Trello pipeline status bars
+  if(trelloData){
+    const tc=getTrelloCounts();const trelloTotal=getTrelloTotal();
+    h+='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)"><div style="font-size:11px;font-weight:600;color:var(--tM);margin-bottom:8px;letter-spacing:.4px">TRELLO-PIPELINE ('+trelloTotal+' Patienten aktuell)</div>';
+    const TRELLO_PHASES=[{key:"stattgefunden",label:"Termin stattgefunden",cls:"sky"},{key:"bplan_erstellt",label:"Behandlungsplan erstellt",cls:"teal"},{key:"bplan_best",label:"Behandlungsplan best\u00e4tigt",cls:"lime"},{key:"begonnen",label:"Behandlung begonnen",cls:"green"},{key:"beendet",label:"Behandlung beendet",cls:"green"}];
+    const tmx=Math.max(1,...TRELLO_PHASES.map(s=>tc[s.key]));
+    TRELLO_PHASES.forEach(s=>{const v=tc[s.key];const pct=Math.max(3,(v/tmx)*100);
+      h+='<div class="bar-row"><div class="bl" title="'+esc(s.label)+'">'+esc(s.label)+'</div><div class="bw"><div class="bf '+s.cls+'" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--g)">'+v+'</div></div>'});
+    h+='</div>';
+  }
+  h+='</div>';
+
+  // Charts
   const byK={};leads.forEach(l=>{const k=l.kunde||"Unbekannt";byK[k]=(byK[k]||0)+1});
   const chart=Object.entries(byK).sort((a,b)=>b[1]-a[1]);const maxB=chart.length?chart[0][1]:1;
-  h+='<div class="card" style="margin-top:16px"><div class="card-title">Leads nach Praxis ('+leads.length+')</div>';
+  h+='<div class="card"><div class="card-title">Leads nach Praxis ('+leads.length+')</div>';
   if(chart.length){chart.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/maxB)*100);const lbl=k.length>30?k.substring(0,28)+"\u2026":k;const pw=(v/wochen).toFixed(1);h+='<div class="bar-row"><div class="bl" title="'+esc(k)+'">'+esc(lbl)+'</div><div class="bw"><div class="bf cyan" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--ac)">'+v+'</div><div style="font-size:11px;color:var(--tD);width:70px;text-align:right">\u00d8 '+pw+'/Wo</div></div>'})}
   else h+='<div class="no-data">Keine Leads</div>';
   h+='</div>';
 
-  // Chart: Leads per Behandlungsart with Ø/Woche
   const byBeh={};leads.forEach(l=>{const b=l.behandlung||"Unbekannt";byBeh[b]=(byBeh[b]||0)+1});
   const behChart=Object.entries(byBeh).sort((a,b)=>b[1]-a[1]);const maxBeh=behChart.length?behChart[0][1]:1;
   h+='<div class="card"><div class="card-title">Leads nach Behandlungsart</div>';
   if(behChart.length){behChart.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/maxBeh)*100);const pw=(v/wochen).toFixed(1);h+='<div class="bar-row"><div class="bl" title="'+esc(k)+'">'+esc(k)+'</div><div class="bw"><div class="bf purple" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--purple)">'+v+'</div><div style="font-size:11px;color:var(--tD);width:70px;text-align:right">\u00d8 '+pw+'/Wo</div></div>'})}
   h+='</div>';
 
-  // Deep Dive: Kunden pro Behandlungsart
+  // Kunden pro Behandlungsart
   const behKunden={};
-  leads.forEach(l=>{
-    const b=l.behandlung||"Unbekannt",k=l.kunde||"Unbekannt";
-    if(!behKunden[b])behKunden[b]={};
-    behKunden[b][k]=(behKunden[b][k]||0)+1;
-  });
+  leads.forEach(l=>{const b=l.behandlung||"Unbekannt",k=l.kunde||"Unbekannt";if(!behKunden[b])behKunden[b]={};behKunden[b][k]=(behKunden[b][k]||0)+1});
   const behSorted=Object.entries(behKunden).sort((a,b)=>Object.values(b[1]).reduce((s,v)=>s+v,0)-Object.values(a[1]).reduce((s,v)=>s+v,0));
   h+='<div class="card"><div class="card-title">Kunden pro Behandlungsart (Deep Dive)</div>';
   behSorted.forEach(function(e){
-    const beh=e[0],kunden=e[1];
-    const kundenSorted=Object.entries(kunden).sort((a,b)=>b[1]-a[1]);
-    const total=kundenSorted.reduce((s,x)=>s+x[1],0);
+    const beh=e[0],kunden=e[1];const kundenSorted=Object.entries(kunden).sort((a,b)=>b[1]-a[1]);const total=kundenSorted.reduce((s,x)=>s+x[1],0);
     h+='<div style="margin-bottom:14px"><div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--t)">'+esc(beh)+' <span style="font-weight:400;color:var(--tD)">('+total+' Leads, '+kundenSorted.length+' Praxen)</span></div>';
     const mx=kundenSorted[0]?kundenSorted[0][1]:1;
-    kundenSorted.forEach(function(x){
-      const k=x[0],v=x[1];const pct=Math.max(3,(v/mx)*100);const pw=(v/wochen).toFixed(1);
-      h+='<div class="bar-row"><div class="bl" style="width:180px;min-width:80px" title="'+esc(k)+'">'+esc(k.length>25?k.substring(0,23)+"\u2026":k)+'</div><div class="bw"><div class="bf teal" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--teal)">'+v+'</div><div style="font-size:11px;color:var(--tD);width:70px;text-align:right">\u00d8 '+pw+'/Wo</div></div>';
-    });
+    kundenSorted.forEach(function(x){const k=x[0],v=x[1];const pct=Math.max(3,(v/mx)*100);const pw=(v/wochen).toFixed(1);
+      h+='<div class="bar-row"><div class="bl" style="width:180px;min-width:80px" title="'+esc(k)+'">'+esc(k.length>25?k.substring(0,23)+"\u2026":k)+'</div><div class="bw"><div class="bf teal" style="width:'+pct+'%"></div></div><div class="bv" style="color:var(--teal)">'+v+'</div><div style="font-size:11px;color:var(--tD);width:70px;text-align:right">\u00d8 '+pw+'/Wo</div></div>'});
     h+='</div>';
   });
   h+='</div>';
@@ -451,38 +429,22 @@ function renderOverview(){
   // Summary
   let tt="\ud83e\uddb7 Patientengewinnung \u00b7 KPIs\n"+getRangeLabel()+"\n\n\ud83d\udce5 Leads: "+leads.length+" (\u00d8 "+perW(leads.length)+"/Wo, "+kundenSet.size+" Praxen)\n\ud83d\udcc8 \u00d8 "+lpw+" Leads/Praxis/Woche\n";
   var icons={"qualifiziert":"\ud83d\udcde","termin":"\ud83d\udcc5","stattgefunden":"\u2705","bplan_erstellt":"\ud83d\udcdd","bplan_best":"\ud83d\udccb","begonnen":"\ud83d\udc8a","beendet":"\ud83c\udfc1"};
-  var stc=getTrelloCurrentCounts();
-  FUNNEL_STAGES.forEach(s=>{
-    const isTr=["stattgefunden","bplan_erstellt","bplan_best","begonnen","beendet"].includes(s.key);
-    const n=isTr&&trelloData?stc[s.key]:(cnt[s.label]||0);
-    tt+=(icons[s.key]||"\u2022")+" "+s.label+": "+n+" (\u00d8 "+perW(n)+"/Wo)"+(isTr&&trelloData?" [Trello]":"")+"\n";
-  });
+  FUNNEL_STAGES.forEach(s=>{const n=cnt[s.label]||0;tt+=(icons[s.key]||"\u2022")+" "+s.label+": "+n+" (\u00d8 "+perW(n)+"/Wo)\n"});
+  if(trelloData){var stc=getTrelloCounts();tt+="\n\ud83d\udccb Trello-Pipeline:\n";["stattgefunden","bplan_erstellt","bplan_best","begonnen","beendet"].forEach(k=>{const labels={stattgefunden:"Termin stattgef.",bplan_erstellt:"BPlan erstellt",bplan_best:"BPlan best\u00e4tigt",begonnen:"Beh. begonnen",beendet:"Beh. beendet"};tt+="\u2022 "+labels[k]+": "+stc[k]+"\n"})}
   tt+="\n\u274c Nicht erreicht: "+nichtErreicht+" ("+pctOf(nichtErreicht)+")\n\ud83d\udcc2 In Ablage: "+ablage+" ("+pctOf(ablage)+")\n";
   h+='<div class="card"><div class="card-title"><span>\ud83d\udccb Zusammenfassung</span><button class="copy-btn" onclick="copyText(\'trelloText\')">Kopieren</button></div><pre class="trello" id="trelloText">'+esc(tt)+'</pre></div>';
   $("content").innerHTML=h;
 }
 
-/* ===== TAB 2: FUNNEL ===== */
-function renderFunnel(){
+/* ===== TAB 2: CONVERSION ===== */
+function renderConversion(){
   const leads=getLeads(),tage=getTage(),total=leads.length;
   const fc={};FUNNEL_STAGES.forEach(s=>{fc[s.key]=countReached(leads,s.level)});
-
   let h="";
-  h+='<div class="info-banner">\ud83d\udd04 <b>Patient Funnel</b> \u2013 kumulative Ansicht aus Airtable. Jede Stufe z\u00e4hlt alle Patienten, die <em>mindestens</em> diesen Status erreicht haben.';
-  if(trelloData)h+='<br>\ud83d\udccb <b>Trello-Pipeline</b> zeigt separat, wo Patienten aktuell in den sp\u00e4teren Phasen stehen.';
-  else h+=' <span style="color:var(--am)">\u26a0 Trello verbinden f\u00fcr sp\u00e4tere Phasen (ab Termin stattgef.).</span>';
-  h+='</div>';
 
-  h+='<div class="card"><div class="card-title">Conversion Funnel (kumulativ)</div><div class="funnel">';
-  h+='<div class="funnel-step"><div class="funnel-label">Leads gesamt</div><div class="funnel-val" style="color:var(--ac)">'+total+'</div><div style="flex:1"><div class="funnel-bar" style="width:100%;background:var(--ac)">100%</div></div></div>';
-  FUNNEL_STAGES.forEach(s=>{
-    const n=fc[s.key];const pct=total>0?Math.max(5,(n/total)*100):0;
-    const pctL=total>0?((n/total)*100).toFixed(1)+"%":"0%";
-    h+='<div class="funnel-step"><div class="funnel-label">'+s.label+'</div><div class="funnel-val" style="color:'+s.color+'">'+n+'</div><div style="flex:1"><div class="funnel-bar" style="width:'+pct+'%;background:'+s.color+'">'+pctL+'</div></div></div>';
-  });
-  h+='</div></div>';
+  h+='<div class="info-banner">\ud83d\udcc8 <b>Step-by-Step Conversion Rates</b> \u2013 Wie viele Leads schaffen es von einer Stufe zur n\u00e4chsten? Basiert auf kumulativer Airtable-Z\u00e4hlung (Leads im gew\u00e4hlten Zeitraum).</div>';
 
-  // Step by step
+  // Step by step rates
   h+='<div class="card"><div class="card-title">Step-by-Step Conversion Rates</div><div class="kpi-row">';
   var pairs=[
     {from:"Lead",fv:total,to:"Qualifiziert",tv:fc.qualifiziert,c:"var(--purple)"},
@@ -499,76 +461,112 @@ function renderFunnel(){
   });
   h+='</div></div>';
 
-  // All statuses
-  const byStatus={};leads.forEach(l=>{const s=l.status||"Kein Status";byStatus[s]=(byStatus[s]||0)+1});
-  h+='<div class="card"><div class="card-title">Status-Verteilung ('+total+' Leads)</div>';
-  const sc=Object.entries(byStatus).sort((a,b)=>b[1]-a[1]);const mx=sc.length?sc[0][1]:1;
-  sc.forEach(function(e){const k=e[0],v=e[1];const pct=Math.max(3,(v/mx)*100);const isDrop=DROPOUT_STATUSES.has(k);
-    h+='<div class="bar-row"><div class="bl" title="'+esc(k)+'">'+esc(k.length>40?k.substring(0,38)+"\u2026":k)+'</div><div class="bw"><div class="bf '+(isDrop?"amber":"green")+'" style="width:'+pct+'%"></div></div><div class="bv" style="color:'+(isDrop?"var(--am)":"var(--g)")+'">'+v+'</div></div>'});
-  h+='</div>';
+  // Conversion Funnel visual
+  h+='<div class="card"><div class="card-title">Conversion Funnel (kumulativ, Airtable)</div><div class="funnel">';
+  h+='<div class="funnel-step"><div class="funnel-label">Leads gesamt</div><div class="funnel-val" style="color:var(--ac)">'+total+'</div><div style="flex:1"><div class="funnel-bar" style="width:100%;background:var(--ac)">100%</div></div></div>';
+  FUNNEL_STAGES.forEach(s=>{
+    const n=fc[s.key];const pct=total>0?Math.max(5,(n/total)*100):0;
+    const pctL=total>0?((n/total)*100).toFixed(1)+"%":"0%";
+    h+='<div class="funnel-step"><div class="funnel-label">'+s.label+'</div><div class="funnel-val" style="color:'+s.color+'">'+n+'</div><div style="flex:1"><div class="funnel-bar" style="width:'+pct+'%;background:'+s.color+'">'+pctL+'</div></div></div>';
+  });
+  h+='</div></div>';
 
-  // Per Kunde
-  h+='<div class="card"><div class="card-title">Funnel nach Praxis</div>';
+  // Funnel nach Praxis - ALL stages including Trello
+  h+='<div class="card"><div class="card-title">Funnel nach Praxis (Airtable-Stadien)</div>';
   const km={};
   leads.forEach(l=>{const k=l.kunde||"Unbekannt";if(!km[k])km[k]={total:0};km[k].total++;
     FUNNEL_STAGES.forEach(s=>{if(!km[k][s.key])km[k][s.key]=0;if(hasReached(l.status,s.level))km[k][s.key]++})});
   const kl=Object.entries(km).sort((a,b)=>b[1].total-a[1].total);
   if(kl.length){
-    h+='<div style="overflow-x:auto"><table><thead><tr><th>Praxis</th><th style="text-align:center">Leads</th><th style="text-align:center">Qualif.</th><th style="text-align:center">Termin</th><th style="text-align:center">Stattgef.</th><th style="text-align:center">BPlan</th><th style="text-align:center">Beh.beg.</th><th style="text-align:center">Beendet</th><th style="text-align:center">Conv.</th></tr></thead><tbody>';
-    kl.forEach(function(e){const k=e[0],v=e[1];const conv=v.total>0?((v.begonnen/v.total)*100).toFixed(1)+"%":"\u2013";
+    h+='<div style="overflow-x:auto"><table><thead><tr><th>Praxis</th><th style="text-align:center">Leads</th>';
+    FUNNEL_STAGES.forEach(s=>{h+='<th style="text-align:center">'+s.label.replace("Qualifiziert (Call)","Qualif.").replace("Termin in Praxis","Termin").replace("Termin stattgefunden","Stattgef.").replace("Behandlungsplan erstellt","BPlan erst.").replace("Behandlungsplan best\u00e4tigt","BPlan best.").replace("Behandlung begonnen","Beh.beg.").replace("Behandlung beendet","Beendet")+'</th>'});
+    h+='<th style="text-align:center">Conv.</th></tr></thead><tbody>';
+    kl.forEach(function(e){const k=e[0],v=e[1];
+      const conv=v.total>0?((v.beendet||0)/v.total*100).toFixed(1)+"%":"\u2013";
       h+='<tr><td class="name">'+esc(k)+'</td><td style="text-align:center">'+v.total+'</td>';
-      h+='<td style="text-align:center;color:var(--purple)">'+v.qualifiziert+'</td>';
-      h+='<td style="text-align:center;color:var(--ac)">'+v.termin+'</td>';
-      h+='<td style="text-align:center;color:var(--sky)">'+v.stattgefunden+'</td>';
-      h+='<td style="text-align:center;color:var(--teal)">'+v.bplan_erstellt+'</td>';
-      h+='<td style="text-align:center;color:var(--g);font-weight:600">'+v.begonnen+'</td>';
-      h+='<td style="text-align:center;color:#047857;font-weight:600">'+v.beendet+'</td>';
+      FUNNEL_STAGES.forEach(s=>{
+        const n=v[s.key]||0;const isLate=["stattgefunden","bplan_erstellt","bplan_best","begonnen","beendet"].includes(s.key);
+        h+='<td style="text-align:center;color:'+s.color+(isLate&&n>0?";font-weight:600":"")+'">'+n+'</td>'});
       h+='<td style="text-align:center;color:var(--purple);font-weight:500">'+conv+'</td></tr>'});
     h+='</tbody></table></div>'}
   h+='</div>';
 
-  /* Trello Pipeline - separate from Airtable funnel */
-  if(trelloData&&trelloData.cards.length){
-    const tc=getTrelloCounts();
-    const trelloTotal=getTrelloTotal();
-    h+='<div class="card"><div class="card-title">\ud83d\udccb Aktuelle Pipeline aus Trello ('+trelloData.boards.length+' PA-Boards, '+trelloTotal+' Patienten in Bearbeitung)</div>';
-    
-    // Pipeline bars
-    const TRELLO_DISPLAY=[
-      {key:"stattgefunden",label:"Termin stattgefunden",color:"var(--sky)"},
-      {key:"bplan_erstellt",label:"Behandlungsplan erstellt",color:"var(--teal)"},
-      {key:"bplan_best",label:"Behandlungsplan best\u00e4tigt",color:"var(--lime)"},
-      {key:"begonnen",label:"Behandlung begonnen",color:"var(--g)"},
-      {key:"beendet",label:"Behandlung beendet",color:"#047857"}
-    ];
-    const maxTc=Math.max(1,...TRELLO_DISPLAY.map(s=>tc[s.key]));
-    h+='<div class="kpi-row" style="margin-bottom:14px">';
-    TRELLO_DISPLAY.forEach(s=>{
-      h+=kpi(s.label,tc[s.key],trelloTotal>0?((tc[s.key]/trelloTotal)*100).toFixed(0)+"% der Pipeline":"",s.color);
+  $("content").innerHTML=h;
+}
+
+/* ===== TAB 3: TRELLO PIPELINE ===== */
+function renderPipeline(){
+  let h="";
+  if(!trelloData){
+    h+='<div class="empty"><div class="icon">\ud83d\udccb</div><h2>Trello nicht verbunden</h2><p>Klicke oben auf <b>\u2699 API</b> und verbinde Trello, um die aktuelle Pipeline zu sehen.</p></div>';
+    $("content").innerHTML=h;return;
+  }
+  const tc=getTrelloCounts();const trelloTotal=getTrelloTotal();
+
+  h+='<div class="info-banner">\ud83d\udccb <b>Aktuelle Trello-Pipeline</b> \u2013 '+trelloData.boards.length+' PA-Boards, '+trelloData.cards.length+' Karten gesamt, '+trelloTotal+' in Funnel-Phasen. Zeigt den <em>aktuellen</em> Stand, unabh\u00e4ngig vom Zeitfilter.</div>';
+
+  // KPI cards
+  const TRELLO_PHASES=[
+    {key:"stattgefunden",label:"Termin stattgefunden",color:"var(--sky)"},
+    {key:"bplan_erstellt",label:"Behandlungsplan erstellt",color:"var(--teal)"},
+    {key:"bplan_best",label:"Behandlungsplan best\u00e4tigt",color:"var(--lime)"},
+    {key:"begonnen",label:"Behandlung begonnen",color:"var(--g)"},
+    {key:"beendet",label:"Behandlung beendet",color:"#047857"}
+  ];
+  h+='<div class="kpi-row" style="margin-bottom:16px">';
+  h+=kpi("In Pipeline gesamt",trelloTotal,trelloData.boards.length+" Boards","var(--ac)");
+  TRELLO_PHASES.forEach(s=>{
+    h+=kpi(s.label,tc[s.key],trelloTotal>0?((tc[s.key]/trelloTotal)*100).toFixed(0)+"% der Pipeline":"",s.color);
+  });
+  h+='</div>';
+
+  // Pipeline funnel visual
+  h+='<div class="card"><div class="card-title">Pipeline-Verteilung</div><div class="funnel">';
+  TRELLO_PHASES.forEach(s=>{
+    const n=tc[s.key];const pct=trelloTotal>0?Math.max(5,(n/trelloTotal)*100):0;
+    h+='<div class="funnel-step"><div class="funnel-label">'+s.label+'</div><div class="funnel-val" style="color:'+s.color+'">'+n+'</div><div style="flex:1"><div class="funnel-bar" style="width:'+pct+'%;background:'+s.color+'">'+(trelloTotal>0?((n/trelloTotal)*100).toFixed(0)+"%":"")+'</div></div></div>';
+  });
+  h+='</div></div>';
+
+  // Cards per stage with board name
+  const byStage={};trelloData.cards.forEach(c=>{if(!c.stage)return;const ln=c.listName;if(!byStage[ln])byStage[ln]=[];byStage[ln].push(c)});
+  h+='<div class="card"><div class="card-title">Patienten pro Phase</div>';
+  Object.entries(byStage).forEach(function(e){
+    const ln=e[0],cards=e[1];
+    const stage=mapTrelloList(ln);
+    const stageColor=stage?TRELLO_PHASES.find(s=>s.key===stage)?.color||"var(--tM)":"var(--tD)";
+    h+='<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;margin-bottom:4px;color:'+stageColor+'">'+esc(ln)+' <span style="font-weight:400;color:var(--tD)">('+cards.length+')</span></div>';
+    cards.forEach(c=>{
+      if(c.name.toLowerCase().includes("skript"))return;
+      const boardShort=c.board.replace(/\|/g,"").replace(/PA/gi,"").replace(/PB/gi,"").replace(/patientengewinnung/gi,"").trim().replace(/^\s*-?\s*/,"").replace(/\s*-?\s*$/,"");
+      h+='<div style="font-size:12px;color:var(--tM);padding:2px 0;margin-left:12px">\u2022 '+esc(c.name)+' <span style="color:var(--tD);font-size:10px">\u2013 '+esc(boardShort)+'</span></div>';
     });
     h+='</div>';
+  });
 
-    // Cards per stage with board name
-    const byStage={};trelloData.cards.forEach(c=>{if(!c.stage)return;const ln=c.listName;if(!byStage[ln])byStage[ln]=[];byStage[ln].push(c)});
-    Object.entries(byStage).forEach(function(e){
+  // Also show non-funnel Trello lists
+  const byNonStage={};trelloData.cards.forEach(c=>{if(c.stage)return;const ln=c.listName;if(!byNonStage[ln])byNonStage[ln]=[];byNonStage[ln].push(c)});
+  const nonStageEntries=Object.entries(byNonStage).filter(e=>e[1].length>0);
+  if(nonStageEntries.length){
+    h+='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)"><div style="font-size:11px;font-weight:600;color:var(--tD);margin-bottom:8px;letter-spacing:.4px">ANDERE TRELLO-LISTEN</div>';
+    nonStageEntries.forEach(function(e){
       const ln=e[0],cards=e[1];
-      const stage=mapTrelloList(ln);
-      const stageColor=stage?TRELLO_DISPLAY.find(s=>s.key===stage)?.color||"var(--tM)":"var(--tD)";
-      h+='<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;margin-bottom:4px;color:'+stageColor+'">'+esc(ln)+' <span style="font-weight:400;color:var(--tD)">('+cards.length+')</span></div>';
+      h+='<div style="margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--tM);margin-bottom:3px">'+esc(ln)+' <span style="font-weight:400;color:var(--tD)">('+cards.length+')</span></div>';
       cards.forEach(c=>{
         if(c.name.toLowerCase().includes("skript"))return;
         const boardShort=c.board.replace(/\|/g,"").replace(/PA/gi,"").replace(/PB/gi,"").replace(/patientengewinnung/gi,"").trim().replace(/^\s*-?\s*/,"").replace(/\s*-?\s*$/,"");
-        h+='<div style="font-size:12px;color:var(--tM);padding:2px 0;margin-left:12px">\u2022 '+esc(c.name)+' <span style="color:var(--tD);font-size:10px">\u2013 '+esc(boardShort)+'</span></div>';
+        h+='<div style="font-size:11px;color:var(--tD);padding:1px 0;margin-left:12px">\u2022 '+esc(c.name)+' \u2013 '+esc(boardShort)+'</div>';
       });
       h+='</div>';
     });
     h+='</div>';
   }
+  h+='</div>';
 
   $("content").innerHTML=h;
 }
 
-/* ===== TAB 3: KUNDEN DEEP DIVE ===== */
+/* ===== TAB 4: KUNDEN DEEP DIVE ===== */
 function renderDeepDive(){
   const leads=getLeads();const km={};
   leads.forEach(l=>{const k=l.kunde||"Unbekannt";if(!km[k])km[k]={name:k,company:l.company||"",leads:[]};km[k].leads.push(l)});
@@ -578,15 +576,14 @@ function renderDeepDive(){
 
   if(!ddSearch){
     h+='<div class="info-banner">\ud83d\udccb <b>'+kunden.length+' Praxen</b> mit Leads im Zeitraum ('+fmtTage(tage)+'). Klicke auf eine Praxis oder nutze die Suche.</div>';
-    h+='<div class="card"><div class="card-title">Alle Praxen</div><div style="overflow-x:auto"><table><thead><tr><th>Praxis</th><th style="text-align:center">Leads</th><th style="text-align:center">Qualif.</th><th style="text-align:center">Termin</th><th style="text-align:center">Beh.beg.</th><th style="text-align:center">Beendet</th><th style="text-align:center">Conv.</th></tr></thead><tbody>';
+    h+='<div class="card"><div class="card-title">Alle Praxen</div><div style="overflow-x:auto"><table><thead><tr><th>Praxis</th><th style="text-align:center">Leads</th>';
+    FUNNEL_STAGES.forEach(s=>{h+='<th style="text-align:center">'+s.label.replace("Qualifiziert (Call)","Qualif.").replace("Termin in Praxis","Termin").replace("Termin stattgefunden","Stattgef.").replace("Behandlungsplan erstellt","BPlan erst.").replace("Behandlungsplan best\u00e4tigt","BPlan best.").replace("Behandlung begonnen","Beh.beg.").replace("Behandlung beendet","Beendet")+'</th>'});
+    h+='<th style="text-align:center">Conv.</th></tr></thead><tbody>';
     kunden.forEach(k=>{
-      const conv=k.leads.length>0?((k.begonnen/k.leads.length)*100).toFixed(1)+"%":"\u2013";
+      const conv=k.leads.length>0?((k.beendet/k.leads.length)*100).toFixed(1)+"%":"\u2013";
       h+='<tr style="cursor:pointer" onclick="document.getElementById(\'ddSearchInput\').value=this.dataset.k;ddSearchChange(this.dataset.k)" data-k="'+esc(k.name)+'">';
       h+='<td class="name">'+esc(k.name)+'</td><td style="text-align:center">'+k.leads.length+'</td>';
-      h+='<td style="text-align:center;color:var(--purple)">'+k.qualifiziert+'</td>';
-      h+='<td style="text-align:center;color:var(--ac)">'+k.termin+'</td>';
-      h+='<td style="text-align:center;color:var(--g);font-weight:600">'+k.begonnen+'</td>';
-      h+='<td style="text-align:center;color:#047857;font-weight:600">'+k.beendet+'</td>';
+      FUNNEL_STAGES.forEach(s=>{h+='<td style="text-align:center;color:'+s.color+'">'+k[s.key]+'</td>'});
       h+='<td style="text-align:center;color:var(--purple);font-weight:500">'+conv+'</td></tr>'});
     h+='</tbody></table></div></div>';
   } else {
@@ -595,7 +592,7 @@ function renderDeepDive(){
     if(!matches.length){h+='<div class="empty"><div class="icon">\ud83d\udd0d</div><h2>Keine Praxis gefunden</h2><p>Keine Praxis passt zu "'+esc(ddSearch)+'".</p></div>';}
     else {
       matches.forEach(k=>{
-        const conv=k.leads.length>0?((k.begonnen/k.leads.length)*100).toFixed(1)+"%":"\u2013";
+        const conv=k.leads.length>0?((k.beendet/k.leads.length)*100).toFixed(1)+"%":"\u2013";
         h+='<div class="card"><div class="kunde-header"><div><h3>'+esc(k.name)+'</h3>';
         if(k.company)h+='<div class="kunde-sub">'+esc(k.company)+'</div>';
         h+='</div><div class="kunde-stats">';
@@ -604,7 +601,7 @@ function renderDeepDive(){
         h+='<div class="kunde-stat"><div class="val" style="color:var(--purple)">'+conv+'</div><div class="lbl">Conversion</div></div>';
         h+='</div></div>';
 
-        // Mini funnel
+        // Mini funnel with ALL stages
         const kT=k.leads.length;
         h+='<div class="funnel" style="margin-bottom:14px">';
         h+='<div class="funnel-step"><div class="funnel-label" style="width:160px">Leads</div><div class="funnel-val" style="color:var(--ac);width:35px">'+kT+'</div><div style="flex:1"><div class="funnel-bar" style="width:100%;background:var(--ac);font-size:10px">100%</div></div></div>';
@@ -612,11 +609,23 @@ function renderDeepDive(){
           h+='<div class="funnel-step"><div class="funnel-label" style="width:160px">'+s.label+'</div><div class="funnel-val" style="color:'+s.color+';width:35px">'+n+'</div><div style="flex:1"><div class="funnel-bar" style="width:'+pct+'%;background:'+s.color+';font-size:10px">'+(kT>0?((n/kT)*100).toFixed(0)+"%":"")+'</div></div></div>'});
         h+='</div>';
 
+        // Status-Verteilung pro Kunde (colored bars)
+        const statusCnt={};k.leads.forEach(l=>{const s=l.status||"Kein Status";statusCnt[s]=(statusCnt[s]||0)+1});
+        const statusSorted=Object.entries(statusCnt).sort((a,b)=>b[1]-a[1]);
+        const sMx=statusSorted.length?statusSorted[0][1]:1;
+        h+='<div class="card-title" style="margin-top:4px">Status-Verteilung ('+k.leads.length+' Leads)</div>';
+        statusSorted.forEach(function(e){const sk=e[0],sv=e[1];const pct=Math.max(3,(sv/sMx)*100);
+          const isDrop=DROPOUT_STATUSES.has(sk);const isPos=POSITIVE_STATUSES.has(sk);
+          const cls=isDrop?"amber":isPos?"green":"sky";
+          const col=isDrop?"var(--am)":isPos?"var(--g)":"var(--sky)";
+          const pctLabel=k.leads.length>0?((sv/k.leads.length)*100).toFixed(0)+"%":"";
+          h+='<div class="bar-row"><div class="bl" title="'+esc(sk)+'">'+esc(sk.length>35?sk.substring(0,33)+"\u2026":sk)+'</div><div class="bw"><div class="bf '+cls+'" style="width:'+pct+'%"></div></div><div class="bv" style="color:'+col+'">'+sv+'</div><div style="font-size:11px;color:var(--tD);width:40px;text-align:right">'+pctLabel+'</div></div>'});
+
         // By Behandlungsart
         const byBeh={};k.leads.forEach(l=>{const b=l.behandlung||"\u2013";if(!byBeh[b])byBeh[b]={total:0,beg:0,end:0};byBeh[b].total++;if(hasReached(l.status,11))byBeh[b].beg++;if(hasReached(l.status,12))byBeh[b].end++});
         const bl=Object.entries(byBeh).sort((a,b)=>b[1].total-a[1].total);
         if(bl.length>1){
-          h+='<div class="card-title" style="margin-top:4px">Nach Behandlungsart</div>';
+          h+='<div class="card-title" style="margin-top:10px">Nach Behandlungsart</div>';
           h+='<div style="overflow-x:auto;margin-bottom:10px"><table><thead><tr><th>Behandlung</th><th style="text-align:center">Leads</th><th style="text-align:center">Beh. begonnen</th><th style="text-align:center">Beendet</th></tr></thead><tbody>';
           bl.forEach(function(e){h+='<tr><td class="name">'+esc(e[0])+'</td><td style="text-align:center">'+e[1].total+'</td><td style="text-align:center;color:var(--g);font-weight:600">'+e[1].beg+'</td><td style="text-align:center;color:#047857;font-weight:600">'+e[1].end+'</td></tr>'});
           h+='</tbody></table></div>'}
@@ -633,7 +642,7 @@ function renderDeepDive(){
 }
 function ddSearchChange(v){ddSearch=v;renderDeepDive()}
 
-/* ===== TAB 4: META ADS ===== */
+/* ===== TAB 5: META ADS ===== */
 function renderMeta(){
   const leads=getLeads(),tage=getTage();
   const withUtm=leads.filter(l=>l.utm_source||l.utm_campaign||l.utm_content);
