@@ -415,21 +415,17 @@ function renderOverview(){
   const kundenSet=new Set(leads.map(l=>l.kunde).filter(Boolean));
   const lpw=kundenSet.size>0?(leads.length/kundenSet.size/wochen).toFixed(1):"0";
   const perW=(n)=>(n/wochen).toFixed(1);
-  const trelloCards=trelloData?getTrelloCards():null;
-  const cnt=getUnifiedCounts(leads,trelloCards);
-  const totalAll=Object.values(cnt).reduce((s,v)=>s+v,0);
-  const pctOf=(n)=>totalAll>0?((n/totalAll)*100).toFixed(1)+"%":"\u2013";
+  const cnt={};leads.forEach(l=>{const s=l.status||"Kein Status";cnt[s]=(cnt[s]||0)+1});
+  const pctOf=(n)=>leads.length>0?((n/leads.length)*100).toFixed(1)+"%":"\u2013";
 
   let h="";
   h+='<div class="section-label">Patienten-Leads \u00b7 '+fmtTage(tage)+'</div><div class="kpi-row">';
-  h+=kpi("Leads gesamt (Airtable)",leads.length,kundenSet.size+" Praxen<br>\u00d8 "+perW(leads.length)+"/Wo","var(--ac)");
-  if(trelloCards)h+=kpi("Trello-Karten (Zeitraum)",trelloCards.filter(c=>c.stage).length,"Im gew\u00e4hlten Zeitraum erstellt","var(--sky)");
-  h+=kpi("Gesamt (kombiniert)",totalAll,"Airtable"+(trelloCards?" + Trello":""),"var(--purple)");
-  h+=kpi("\u00d8 pro Praxis / Woche",lpw,"Normiert auf 7 Tage","var(--teal)");
+  h+=kpi("Leads gesamt",leads.length,kundenSet.size+" Praxen<br>\u00d8 "+perW(leads.length)+"/Wo","var(--ac)");
+  h+=kpi("\u00d8 pro Praxis / Woche",lpw,"Normiert auf 7 Tage","var(--purple)");
   h+='</div>';
 
   // KPI cards for progressive stages
-  h+='<div class="section-label" style="margin-top:16px">Conversion-Phasen (Airtable'+(trelloCards?' + Trello':'')+', Zeitraum)</div>';
+  h+='<div class="section-label" style="margin-top:16px">Conversion-Phasen (Leads im Zeitraum)</div>';
   h+='<div class="kpi-row">';
   FUNNEL_STAGES.forEach(s=>{
     const n=cnt[s.label]||0;
@@ -449,13 +445,13 @@ function renderOverview(){
   h+='</div>';
 
   // UNIFIED Status-Verteilung: all statuses in logical order, one chart
-  h+='<div class="card" style="margin-top:16px"><div class="card-title">Status-Verteilung \u2013 alle Stadien ('+totalAll+' Leads+Karten im Zeitraum)</div>';
+  h+='<div class="card" style="margin-top:16px"><div class="card-title">Status-Verteilung \u2013 alle Stadien ('+leads.length+' Leads im Zeitraum)</div>';
   const maxBar=Math.max(1,...UNIFIED_STATUS_ORDER.map(s=>cnt[s.label]||0));
   UNIFIED_STATUS_ORDER.forEach(s=>{
-    const v=cnt[s.label]||0; if(v===0)return;
-    const pct=Math.max(3,(v/maxBar)*100);
+    const v=cnt[s.label]||0;
+    const pct=v>0?Math.max(3,(v/maxBar)*100):0;
     const shortLabel=s.label.length>40?s.label.substring(0,38)+"\u2026":s.label;
-    h+='<div class="bar-row"><div class="bl" title="'+esc(s.label)+'">'+esc(shortLabel)+'</div><div class="bw"><div class="bf '+s.cls+'" style="width:'+pct+'%"></div></div><div class="bv" style="color:'+s.color+'">'+v+'</div><div style="font-size:11px;color:var(--tD);width:50px;text-align:right">'+pctOf(v)+'</div></div>';
+    h+='<div class="bar-row"><div class="bl" title="'+esc(s.label)+'">'+esc(shortLabel)+'</div><div class="bw"><div class="bf '+s.cls+'" style="width:'+pct+'%"></div></div><div class="bv" style="color:'+(v>0?s.color:'var(--tD)')+'">'+v+'</div><div style="font-size:11px;color:var(--tD);width:50px;text-align:right">'+pctOf(v)+'</div></div>';
   });
   // Show any statuses not in UNIFIED_STATUS_ORDER
   Object.entries(cnt).forEach(e=>{
@@ -663,9 +659,10 @@ function renderDeepDive(){
         if(k.company)h+='<div class="kunde-sub">'+esc(k.company)+'</div>';
         h+='</div><div class="kunde-stats">';
         h+='<div class="kunde-stat"><div class="val" style="color:var(--ac)">'+k.leads.length+'</div><div class="lbl">Leads</div></div>';
-        // Show key stats in header
-        [{key:"qualifiziert",lbl:"Qualif."},{key:"termin",lbl:"Termin"},{key:"begonnen",lbl:"Beh.beg."},{key:"beendet",lbl:"Beendet"}].forEach(s=>{
-          h+='<div class="kunde-stat"><div class="val" style="color:'+(ALL_STAGES.find(x=>x.key===s.key)?.color||"var(--tM)")+'">'+k[s.key]+'</div><div class="lbl">'+s.lbl+'</div></div>'});
+        // All stages in header
+        ALL_STAGES.forEach(s=>{
+          const n=k[s.key]||0;
+          h+='<div class="kunde-stat"><div class="val" style="color:'+(n>0?s.color:'var(--tD)')+'">'+n+'</div><div class="lbl">'+s.short+'</div></div>'});
         h+='</div></div>';
 
         // Status-Verteilung in UNIFIED ORDER (colored bars)
